@@ -47,8 +47,8 @@ while tsim<Ttot*T
         %         disp(aux)
         
         % Proceso de contención
-        tiene_pkt = find(sum(Grado(:,:,i),1)); % Nodos que tienen pkt en buffer
-        backoff = randi(W, size(tiene_pkt)); % Condicionado a size(tiene_pkt)
+        tiene_pkt = find(sum(Grado(:,:,i),1)) % Nodos que tienen pkt en buffer
+        backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
         ganador = find(backoff==min(backoff)); % Indice de tiene_pkt
         
         if numel(ganador) == 1
@@ -127,17 +127,37 @@ function pos = getFreePosition(v)
     end
 end
 
-function hn = hash(id_node)
-% distributed election
-% one ticket for every node in its grade
-% the node with the largerst ticket value has the highest priority to
-% transmit
-% h_n(k) = (a_n*k + b_n) mod p
-% k belongs [0, N-1] (unique node identifier)
-% p prime number p ≥ N
-% a_n, b_n belongs [0, p-1] - pseudo-random number drwan from a uniform
-% distribution
-% Nodes use a monotonically increasing transmission slot number as the seed 
-% for generating the values of an and bn at each transmission slot
+function p = generate_random_prime(N)
+    while true
+        candidate = N + randi([0, 1000]); 
+        if isprime(candidate)
+            p = candidate;
+            break;
+        end
+    end
+end
+
+function hn = hash(k, N)
+    % distributed election
+    % one ticket for every node in its grade
+    % the node with the largerst ticket value has the highest priority to
+    % transmit
+    % h_n(k) = (a_n*k + b_n) mod p
+    % k belongs [0, N-1] (unique node identifier)
+    % p prime number p ≥ N
+    % a_n, b_n belongs [0, p-1] - pseudo-random number drawn from a uniform
+    % distribution
+    % Nodes use a monotonically increasing transmission slot number as the seed 
+    % for generating the values of an and bn at each transmission slot
+
+    % randi(W, size(tiene_pkt))
+    
+    p = generate_random_prime(N) % prime number p ≥ N
+    
+    a_n = randi([0, p-1])
+    b_n = randi([0, p-1])
+    
+    aux = (a_n*k + b_n) 
+    hn = mod(aux, p)
 
 end
