@@ -3,7 +3,7 @@ close all
 I = 7; % Numero de grados
 N = 5; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
-W = 16; % Numero de mini-ranuras en la ventana de contenciÃ³n (16, 32, 64, 128, 256)
+W = 16; % Numero de mini-ranuras en la ventana de contención (16, 32, 64, 128, 256)
 xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 
@@ -13,7 +13,11 @@ Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e5; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
+p_rel = 0.5;
+p_loc = 1 - p_rel;
+
 Grado = zeros(K,N,I); % Buffer, Nodo, Grado
+
 % Grado(Grado>0.3) = 0;
 % Grado = Grado*10/3*Ttot;
 % Grado = sort(Grado,1);
@@ -27,17 +31,21 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
+
 while tsim<Ttot*T
     for i=I:-1:1
         while ta<=tsim % Generación de pkts locales
-            id = id +1;
+            id = id + 1;
+            
+            
             n = [randi(N) randi(I)];
-            pos = getFreePosition(Grado(:, n(1), n(2)));
+            pos = getFreePosition(Grado(:, n(1), n(2)));                      
+            
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
                 % perdidos = perdidos +1;
             else
-                Grado(pos, n(1), n(2)) = id;
+                Grado(pos, n(1), n(2)) = id;                
             end
             ta = arribo(ta, lambda2);
         end % ended generacion de pkts locales
@@ -48,12 +56,20 @@ while tsim<Ttot*T
         
         % Proceso de contención
         tiene_pkt = find(sum(Grado(:,:,i),1)) % Nodos que tienen pkt en buffer
+        % buscar si tiene paquetes en el búfer de relay
+
+        hn = hash(N)
+        % ganador = max(hn)
+        
         backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
-        ganador = find(backoff==min(backoff)); % Indice de tiene_pkt
+        ganador = find(backoff==min(backoff)) % Indice de tiene_pkt
+        
+        %ganador = find(hn==max(hn)) % Indice de tiene_pkt
         
         if numel(ganador) == 1
             if i>1
-                %             disp("Tx " + tiene_pkt(ganador));
+                % disp("Tx " + tiene_pkt(ganador));
+
                 pos = getFreePosition(Grado(:,tiene_pkt(ganador),i-1)); % Last free position
                 if pos==0 % BUFFER LLENO
                     % perdidos = perdidos +1;
@@ -67,7 +83,7 @@ while tsim<Ttot*T
             end
             Grado(:,tiene_pkt(ganador),i) = [0; Grado(1:K-1,tiene_pkt(ganador),i)];
 %             tx = tx+1;
-        else
+        else % Este else no ocurrira porque no hay colisiones en HP-MAC
             %             disp("Colision");
             Grado(:,tiene_pkt(ganador),i) = [zeros(size(ganador)); Grado(1:K-1,tiene_pkt(ganador),i)];
         end % ended contencion
@@ -127,37 +143,14 @@ function pos = getFreePosition(v)
     end
 end
 
-function p = generate_random_prime(N)
-    while true
-        candidate = N + randi([0, 1000]); 
-        if isprime(candidate)
-            p = candidate;
-            break;
-        end
-    end
-end
-
-function hn = hash(k, N)
-    % distributed election
-    % one ticket for every node in its grade
-    % the node with the largerst ticket value has the highest priority to
-    % transmit
-    % h_n(k) = (a_n*k + b_n) mod p
-    % k belongs [0, N-1] (unique node identifier)
-    % p prime number p ≥ N
-    % a_n, b_n belongs [0, p-1] - pseudo-random number drawn from a uniform
-    % distribution
-    % Nodes use a monotonically increasing transmission slot number as the seed 
-    % for generating the values of an and bn at each transmission slot
-
-    % randi(W, size(tiene_pkt))
+function hn = hash(N)    
+    k = 1:N;
+    p = nextprime(N); % prime number p ≥ N
     
-    p = generate_random_prime(N) % prime number p ≥ N
+    rng(tsim/T)
+    a_n = randi([0, p-1]);
+    b_n = randi([0, p-1]);
     
-    a_n = randi([0, p-1])
-    b_n = randi([0, p-1])
-    
-    aux = (a_n*k + b_n) 
-    hn = mod(aux, p)
-
+    aux = (a_n*k + b_n); 
+    hn = mod(aux, p);
 end
