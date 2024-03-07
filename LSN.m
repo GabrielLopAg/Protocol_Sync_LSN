@@ -3,7 +3,7 @@ close all
 I = 7; % Numero de grados
 N = 5; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
-W = 16; % Numero de mini-ranuras en la ventana de contención (16, 32, 64, 128, 256)
+W = N; % Numero de mini-ranuras en la ventana de contención 
 xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 
@@ -58,35 +58,32 @@ while tsim<Ttot*T
         tiene_pkt = find(sum(Grado(:,:,i),1)) % Nodos que tienen pkt en buffer
         % buscar si tiene paquetes en el búfer de relay
 
-        hn = hash(N)
+        hn = hash(N, tsim, T)
         % ganador = max(hn)
         
-        backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
-        ganador = find(backoff==min(backoff)) % Indice de tiene_pkt
+        % backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
+        ganador = find(hn==max(hn)) % Indice de tiene_pkt
         
         %ganador = find(hn==max(hn)) % Indice de tiene_pkt
         
-        if numel(ganador) == 1
-            if i>1
-                % disp("Tx " + tiene_pkt(ganador));
+        if i>1
+            % disp("Tx " + tiene_pkt(ganador));
+            sel_buffer = randsrc(1, 1, [1 2; p_loc p_rel]); % Añadir otra dimensión en la matriz para el búfer de relay
 
-                pos = getFreePosition(Grado(:,tiene_pkt(ganador),i-1)); % Last free position
-                if pos==0 % BUFFER LLENO
-                    % perdidos = perdidos +1;
-                else
-                    Grado(pos,tiene_pkt(ganador),i-1) = Grado(K,tiene_pkt(ganador),i);
-                end
-            else % recepción en Sink
-                id_r = Grado(K,tiene_pkt(ganador),1);
-                rx_sink = [rx_sink id_r];
-                pkts(id_r,3) = tsim-pkts(id_r,3);
+            pos = getFreePosition(Grado(:, ganador, i-1)); % Last free position
+            if pos==0 % BUFFER LLENO
+                % perdidos = perdidos +1;
+            else
+                Grado(pos,ganador,i-1) = Grado(K,ganador,i);
             end
-            Grado(:,tiene_pkt(ganador),i) = [0; Grado(1:K-1,tiene_pkt(ganador),i)];
+        else % recepción en Sink
+            id_r = Grado(K,ganador,1);
+            rx_sink = [rx_sink id_r];
+            pkts(id_r,3) = tsim-pkts(id_r,3);
+        end
+        Grado(:,ganador,i) = [0; Grado(1:K-1,ganador,i)];
 %             tx = tx+1;
-        else % Este else no ocurrira porque no hay colisiones en HP-MAC
-            %             disp("Colision");
-            Grado(:,tiene_pkt(ganador),i) = [zeros(size(ganador)); Grado(1:K-1,tiene_pkt(ganador),i)];
-        end % ended contencion
+
         tsim = tsim + T;
     end % ended barrido
     %     disp('Nodo sink')
@@ -143,7 +140,7 @@ function pos = getFreePosition(v)
     end
 end
 
-function hn = hash(N)    
+function hn = hash(N, tsim, T)    
     k = 1:N;
     p = nextprime(N); % prime number p ≥ N
     
