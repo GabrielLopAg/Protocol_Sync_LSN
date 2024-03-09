@@ -13,10 +13,10 @@ Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
-p_rel = 0.5;
+p_rel = 0.2;
 p_loc = 1 - p_rel;
 
-Grado = zeros(K,N,I); % Buffer, Nodo, Grado
+Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
 buf_loc = 2;
 
@@ -39,15 +39,15 @@ while tsim<Ttot*T
         while ta<=tsim % Generación de pkts locales
             id = id + 1;
             
-            
+            % rng("default");
             n = [randi(N) randi(I)];
-            pos = getFreePosition(Grado(:, n(1), n(2)));                      
+            pos = getFreePosition(Grado(buf_loc,:, n(1), n(2)));                      
             
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
                 % perdidos = perdidos +1;
             else
-                Grado(pos, n(1), n(2)) = id;                
+                Grado(buf_loc, pos, n(1), n(2)) = id;                
             end
             ta = arribo(ta, lambda2);
         end % ended generacion de pkts locales
@@ -57,7 +57,9 @@ while tsim<Ttot*T
         %         disp(aux)
         
         % Proceso de contención
-        tiene_pkt = find(Grado(K,:,i)); % Nodos que tienen pkt en buffer
+        tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
+        tiene_pkt_rel = find(Grado(buf_rel,K,:,i)); % Nodos que tienen pkt en buffer relay
+        tiene_pkt = unique([tiene_pkt_loc; tiene_pkt_rel]);
         % buscar si tiene paquetes en el búfer de relay
         if numel(tiene_pkt)==0
             continue
@@ -70,23 +72,29 @@ while tsim<Ttot*T
         ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
         
         %ganador = find(hn==max(hn)) % Indice de tiene_pkt
+        if ~ismember(ganador,tiene_pkt_rel)
+            sel_buffer = buf_loc;
+        elseif ~ismember(ganador,tiene_pkt_loc)
+            sel_buffer = buf_rel;
+        else
+            sel_buffer = randsrc(1, 1, [buf_loc buf_rel; p_loc p_rel]); % Añadir otra dimensión en la matriz para el búfer de relay
+        end
         
         if i>1
             % disp("Tx " + tiene_pkt(ganador));
-            sel_buffer = randsrc(1, 1, [1 2; p_loc p_rel]); % Añadir otra dimensión en la matriz para el búfer de relay
 
-            pos = getFreePosition(Grado(:, ganador, i-1)); % Last free position
+            pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
             if pos==0 % BUFFER LLENO
                 % perdidos = perdidos +1;
             else
-                Grado(pos,ganador,i-1) = Grado(K,ganador,i);
+                Grado(buf_rel, pos,ganador,i-1) = Grado(sel_buffer,K,ganador,i);
             end
         else % recepción en Sink
-            id_r = Grado(K,ganador,1);
+            id_r = Grado(sel_buffer,K,ganador,1);
             rx_sink = [rx_sink id_r];
             pkts(id_r,3) = tsim-pkts(id_r,3);
         end
-        Grado(:,ganador,i) = [0; Grado(1:K-1,ganador,i)];
+        Grado(sel_buffer,:,ganador,i) = [0 Grado(sel_buffer,1:K-1,ganador,i)];
 %             tx = tx+1;
 
         tsim = tsim + T;
