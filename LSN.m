@@ -10,13 +10,15 @@ lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 tsim = 0; % medido en ranuras
 T = 1; % tiempo de ranura (1 ranura)
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e5; % Ciclos que dura la simulación
+Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.5;
 p_loc = 1 - p_rel;
 
 Grado = zeros(K,N,I); % Buffer, Nodo, Grado
+buf_rel = 1;
+buf_loc = 2;
 
 % Grado(Grado>0.3) = 0;
 % Grado = Grado*10/3*Ttot;
@@ -55,14 +57,17 @@ while tsim<Ttot*T
         %         disp(aux)
         
         % Proceso de contención
-        tiene_pkt = find(sum(Grado(:,:,i),1)) % Nodos que tienen pkt en buffer
+        tiene_pkt = find(Grado(K,:,i)); % Nodos que tienen pkt en buffer
         % buscar si tiene paquetes en el búfer de relay
+        if numel(tiene_pkt)==0
+            continue
+        end
 
-        hn = hash(N, tsim, T)
+        hn = hash(N, tsim, T);
         % ganador = max(hn)
         
         % backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
-        ganador = find(hn==max(hn)) % Indice de tiene_pkt
+        ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
         
         %ganador = find(hn==max(hn)) % Indice de tiene_pkt
         
@@ -141,11 +146,11 @@ function pos = getFreePosition(v)
 end
 
 function hn = hash(N, tsim, T)    
-    k = 1:N;
+    k = 0:N-1;
     p = nextprime(N); % prime number p ≥ N
     
     rng(tsim/T)
-    a_n = randi([0, p-1]);
+    a_n = randi([1, p-1]); % PREGUNTAR a_n=0 genera el mismo ticket N veces
     b_n = randi([0, p-1]);
     
     aux = (a_n*k + b_n); 
