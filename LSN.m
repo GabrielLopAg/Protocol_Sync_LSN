@@ -65,19 +65,17 @@ while tsim<Ttot*T
             continue
         end
 
-        hn = hash(N, tsim, T);
-        % ganador = max(hn)
+        hn = hash(N, tsim, T);        
         
         % backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
         ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
-        
-        %ganador = find(hn==max(hn)) % Indice de tiene_pkt
+                
         if ~ismember(ganador,tiene_pkt_rel)
             sel_buffer = buf_loc;
         elseif ~ismember(ganador,tiene_pkt_loc)
             sel_buffer = buf_rel;
         else
-            sel_buffer = randsrc(1, 1, [buf_loc buf_rel; p_loc p_rel]); % Añadir otra dimensión en la matriz para el búfer de relay
+            sel_buffer = randsrc(1, 1, [buf_loc buf_rel; p_loc p_rel]); 
         end
         
         if i>1
@@ -87,14 +85,14 @@ while tsim<Ttot*T
             if pos==0 % BUFFER LLENO
                 % perdidos = perdidos +1;
             else
-                Grado(buf_rel, pos,ganador,i-1) = Grado(sel_buffer,K,ganador,i);
+                Grado(buf_rel, pos, ganador, i-1) = Grado(sel_buffer, K, ganador, i);
             end
         else % recepción en Sink
             id_r = Grado(sel_buffer,K,ganador,1);
             rx_sink = [rx_sink id_r];
             pkts(id_r,3) = tsim-pkts(id_r,3);
         end
-        Grado(sel_buffer,:,ganador,i) = [0 Grado(sel_buffer,1:K-1,ganador,i)];
+        Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
 %             tx = tx+1;
 
         tsim = tsim + T;
