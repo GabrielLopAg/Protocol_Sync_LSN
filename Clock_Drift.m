@@ -20,3 +20,10 @@ for node = 1:num_nodes
     drift = normrnd(0, drift_std, 1, length(time)); 
     clock_drift(node, :) = drift;
 end
+
+time_deviation = zeros(num_nodes, length(time));
+for node = 1:num_nodes
+    for t = 2:length(time)
+        time_deviation(node, t) = time_deviation(node, t-1) + clock_drift(node, t) * time_step;
+    end
+end
