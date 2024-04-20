@@ -82,8 +82,9 @@ while tsim<Ttot*T
         tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
         tiene_pkt_rel = find(Grado(buf_rel,K,:,i)); % Nodos que tienen pkt en buffer relay
         tiene_pkt = unique([tiene_pkt_loc; tiene_pkt_rel]);
-        % buscar si tiene paquetes en el búfer de relay
+        % buscar si tiene paquetes en el búfer
         if numel(tiene_pkt)==0
+            tsim = tsim + T;
             continue
         end
 
