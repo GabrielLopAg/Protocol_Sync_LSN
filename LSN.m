@@ -8,9 +8,10 @@ xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 
 tsim = 0; % medido en ranuras
-T = 1; % tiempo de ranura (1 ranura)
+sigma = 0.5; % DUMMY debe ajustarse en ms
+T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e3; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.2;
@@ -44,8 +45,13 @@ frecuencia_oscilador = 32768;
 desviacion_oscilador = 20;
 frecuencia_muestreo = 1;
 
+% Parámetros de Evaluación
+perdidos = 0;
+tiempoTx = zeros(I,1);
+tiempoRx = zeros(I,1);
+tiempoSp = zeros(I,1);
 
-while tsim<Ttot*T
+while tsim<Ttot
     % FTSP
     offset_aleatorio = rand() * 2 * desviacion_oscilador - desviacion_oscilador;
     relojes_nodos = relojes_nodos + offset_aleatorio;
@@ -67,7 +73,7 @@ while tsim<Ttot*T
             
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
-                % perdidos = perdidos +1;
+                perdidos = perdidos +1;
             else
                 Grado(buf_loc, pos, n(1), n(2)) = id;                
             end
@@ -77,6 +83,7 @@ while tsim<Ttot*T
         %         disp(i)
         %         aux = Grado(:,:,i);
         %         disp(aux)
+
         
         % Proceso de contención
         tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
@@ -84,7 +91,9 @@ while tsim<Ttot*T
         tiene_pkt = unique([tiene_pkt_loc; tiene_pkt_rel]);
         % buscar si tiene paquetes en el búfer
         if numel(tiene_pkt)==0
+            % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
+            tiempoSp = tiempoSp + N*T;
             continue
         end
 
@@ -106,28 +115,42 @@ while tsim<Ttot*T
 
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
             if pos==0 % BUFFER LLENO
-                % perdidos = perdidos +1;
+                perdidos = perdidos +1; % ?
+                % tiempoRx(i-1) = tiempoRx(i-1) + N*N*sigma;
+                tiempoSp(i) = tiempoSp(i) + T;
+                tiempoSp(i-1) = tiempoSp(i-1) + T;
             else
                 Grado(buf_rel, pos, ganador, i-1) = Grado(sel_buffer, K, ganador, i);
+                tiempoRx(i-1) = tiempoRx(i-1) + T;
+                tiempoTx(i)   = tiempoTx(i)   + T;
             end
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T;
+            tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T;
+            tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
         else % recepción en Sink
             id_r = Grado(sel_buffer,K,ganador,1);
             rx_sink = [rx_sink id_r];
             pkts(id_r,3) = tsim-pkts(id_r,3);
+            tiempoTx(i) = tiempoTx(i) + T;
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T;
         end
         Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
 %             tx = tx+1;
 
+        tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T;
         tsim = tsim + T;
     end % ended barrido
     %     disp('Nodo sink')
     
     % Print timestamp for each node
-    disp(['Timestamps at time ' num2str(tsim) ':']);
-    disp(relojes_nodos);
+    % disp(['Timestamps at time ' num2str(tsim) ':']);
+    % disp(relojes_nodos);
 
+    tiempoSp = tiempoSp + N*T*(xi+2-I);
     tsim = tsim + T*(xi+2-I);
 end % ended tsim
+
+[tiempoSp tiempoRx tiempoTx tiempoSp+tiempoRx+tiempoTx]
 
 %% Throughput de la red
 th = numel(rx_sink)/Nc
