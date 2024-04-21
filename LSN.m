@@ -11,7 +11,7 @@ tsim = 0; % medido en ranuras
 sigma = 0.5; % DUMMY debe ajustarse en ms
 T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e2; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.2;
@@ -115,7 +115,7 @@ while tsim<Ttot
 
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
             if pos==0 % BUFFER LLENO
-                % perdidos = perdidos +1;
+                perdidos = perdidos +1; % ?
                 % tiempoRx(i-1) = tiempoRx(i-1) + N*N*sigma;
                 tiempoSp(i) = tiempoSp(i) + T;
                 tiempoSp(i-1) = tiempoSp(i-1) + T;
