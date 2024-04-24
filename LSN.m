@@ -34,17 +34,6 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
-% FTSP Parameters
-num_nodos = N;
-tiempo_simulacion = Ttot;
-intervalo_muestreo = T;
-
-relojes_nodos = zeros(num_nodos, 1);
-offset_inicial = 0;
-frecuencia_oscilador = 32768;
-desviacion_oscilador = 20;
-frecuencia_muestreo = 1;
-
 % Parámetros de Evaluación
 perdidos = 0;
 tiempoTx = zeros(I,1);
@@ -52,24 +41,13 @@ tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
 
 while tsim<Ttot
-    % FTSP
-    offset_aleatorio = rand() * 2 * desviacion_oscilador - desviacion_oscilador;
-    relojes_nodos = relojes_nodos + offset_aleatorio;
-    
-    if mod(tsim/T, frecuencia_muestreo) == 0
-        tiempo_promedio = mean(relojes_nodos);
-        offsets_relativos = relojes_nodos - tiempo_promedio;
-        relojes_nodos = relojes_nodos - offsets_relativos;
-    end
-
-    % HP-MAC
     for i=I:-1:1
         while ta<=tsim % Generación de pkts locales
             id = id + 1;
             
             % rng("default");
             n = [randi(N) randi(I)];
-            pos = getFreePosition(Grado(buf_loc,:, n(1), n(2)));                      
+            pos = getFreePosition(Grado(buf_loc, :, n(1), n(2)));                      
             
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
@@ -141,7 +119,7 @@ while tsim<Ttot
         tsim = tsim + T;
     end % ended barrido
     %     disp('Nodo sink')
-    
+ 
     % Print timestamp for each node
     % disp(['Timestamps at time ' num2str(tsim) ':']);
     % disp(relojes_nodos);

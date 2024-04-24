@@ -15,7 +15,7 @@ offset_inicial = 0; % Offset inicial de tiempo
 % Bucle de simulación
 for t = 1:dt:tiempo_simulacion
     % Generar offset aleatorio
-    offset_aleatorio = dt * desviacion_oscilador / 1e6 * ( rand(num_nodos, 1)*2 - 1 );
+    offset_aleatorio = dt * desviacion_oscilador / 1e6 * ( rand(num_nodos, 1)*2 - 1 )
     
     % Actualizar relojes de los nodos con el offset aleatorio
     relojes_nodos = relojes_nodos + dt + offset_aleatorio;

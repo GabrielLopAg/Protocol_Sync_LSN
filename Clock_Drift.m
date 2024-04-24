@@ -31,7 +31,7 @@ end
 % Plot time synchronization error
 figure;
 plot((1:timeStep:timeSim), timeSyncError);
-xlabel('Time');
-ylabel('Time synchronization error');
-title('Time synchronization error between two motes');
+xlabel('Tiempo');
+ylabel('Error absoluto');
+title('Error de sincronización');
 grid on;
