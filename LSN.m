@@ -150,9 +150,14 @@ while tsim<Ttot
     tsim = tsim + T*(xi+2-I);
 end % ended tsim
 
-[tiempoSp tiempoRx tiempoTx tiempoSp+tiempoRx+tiempoTx]
+%% Parametro de evaluacion
+% Calculo de potencia
+table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
+    'VariableNames',["S", "Rx", "Tx", "Suma"])
 
-%% Throughput de la red
+
+
+% Throughput de la red
 th = numel(rx_sink)/Nc
 
 rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
