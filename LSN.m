@@ -1,5 +1,15 @@
 close all
 
+tau_difs = 10e-3;
+tau_rts = 11e-3;
+tau_cts = 11e-3;
+tau_ack = 11e-3;
+tau_data = 43e-3;
+tau_sifs = 5e-3;
+
+tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
+T = tau_msg + sigma*W; % Duración de una ranura 
+
 I = 7; % Numero de grados
 N = 5; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
@@ -8,8 +18,8 @@ xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 
 tsim = 0; % medido en ranuras
-sigma = 0.5; % DUMMY debe ajustarse en ms
-T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
+sigma = 1e-3; % DUMMY debe ajustarse en ms
+% T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
