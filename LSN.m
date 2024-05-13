@@ -1,5 +1,15 @@
 close all
 
+I = 7; % Numero de grados
+N = 20; % Numero de nodos por grado (5, 10, 15, 20)
+K = 10; % Numero de espacios en buffer por nodo
+% W = N; % Numero de mini-ranuras en la ventana de contención 
+xi = 18; % Numero de ranuras de sleeping
+lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
+
+tsim = 0; % medido en ranuras
+sigma = 1e-3; % ms
+
 tau_difs = 10e-3;
 tau_rts = 11e-3;
 tau_cts = 11e-3;
@@ -8,17 +18,8 @@ tau_data = 43e-3;
 tau_sifs = 5e-3;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
-T = tau_msg + sigma*W; % Duración de una ranura 
+T = tau_msg + sigma*N; % Duración de una ranura (N = W)
 
-I = 7; % Numero de grados
-N = 5; % Numero de nodos por grado (5, 10, 15, 20)
-K = 10; % Numero de espacios en buffer por nodo
-W = N; % Numero de mini-ranuras en la ventana de contención 
-xi = 18; % Numero de ranuras de sleeping
-lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
-
-tsim = 0; % medido en ranuras
-sigma = 1e-3; % DUMMY debe ajustarse en ms
 % T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e4; % Ciclos que dura la simulación
@@ -61,7 +62,7 @@ while tsim<Ttot
             
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
-                perdidos = perdidos +1;
+                perdidos = perdidos + 1;
             else
                 Grado(buf_loc, pos, n(1), n(2)) = id;                
             end
@@ -156,7 +157,7 @@ title('Retardo promedio del paquete');
 xlabel('Grado de origen');
 ylabel('Retardo [ciclos]');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N; "W = "+W], ...
+   ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
 % Paquetes perdidos
@@ -170,7 +171,7 @@ bar(perd)
 title('Probabilidad de paquete perdido');
 xlabel('Grado de origen');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N; "W = "+W], ...
+   ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
 % histogram(pkts(ismember(pkts(:,1),rx_sink),2));
