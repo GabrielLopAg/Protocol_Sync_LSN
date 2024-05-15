@@ -1,43 +1,56 @@
-clear variables
-% Parámetros de la simulación
-num_nodos = 10; % Número de nodos en la red
-tiempo_simulacion = 1000; % Tiempo total de simulación en segundos
-dt                = 1;    % Resolución de la simulación en segundos
-intervalo_muestreo = 0; % Intervalo de muestreo en segundos
-frecuencia_oscilador = 32768; % Frecuencia del oscilador en Hz
-desviacion_oscilador = 20; % Desviación del oscilador en ppm
-frecuencia_muestreo = 0; % Frecuencia de muestreo en Hz
+clear all
 
-% Inicialización de variables
-relojes_nodos = zeros(num_nodos, 1); % Inicialización de los relojes de los nodos
-offset_inicial = 0; % Offset inicial de tiempo
+num_clusters = 4;
+nodes_per_cluster = 5;
+total_nodes = num_clusters * nodes_per_cluster;
 
-% Bucle de simulación
-for t = 1:dt:tiempo_simulacion
-    % Generar offset aleatorio
-    offset_aleatorio = dt * desviacion_oscilador / 1e6 * ( rand(num_nodos, 1)*2 - 1 );
-    
-    % Actualizar relojes de los nodos con el offset aleatorio
-    relojes_nodos = relojes_nodos + dt + offset_aleatorio;
-    
-    % Sincronizar relojes cada cierto intervalo de muestreo 
-    % con el algoritmo de FTSP
-    if mod(t, frecuencia_muestreo) == 0
-        % CORREGIR todo dentro del if, esto no es FTSP
-        % Calcular el promedio de los relojes de los nodos
-        tiempo_promedio = mean(relojes_nodos);
-        
-        % Calcular los offsets relativos
-        offsets_relativos = relojes_nodos - tiempo_promedio;
-        
-        % Corregir los relojes de los nodos con los offsets relativos
-        relojes_nodos = relojes_nodos - offsets_relativos;
-    end
-    
-    % Simular la transmisión de los paquetes de sincronización cada segundo
-    if mod(t, intervalo_muestreo) == 0
-        
-        % Envío de paquete de sincronización con el tiempo actual
-        disp(['Nodo 1 envía paquete de sincronización en el tiempo ', num2str(t)]);
+drift = 40e-6; % drift per second for Mica2 motes (40μs/s)
+max_offset = 500e-6; % maximum offset for initial synchronization
+max_skew = 1e-6; % maximum skew for initial synchronization
+sync_threshold = 50e-6; % synchronization threshold
+
+local_clocks = rand(total_nodes, 1) * max_offset; % local clock offsets
+skews = rand(total_nodes, 1) * max_skew; % skews
+offsets = zeros(total_nodes, 1); % global clock offsets
+
+% communication between nodes
+adjacency_matrix = zeros(total_nodes, total_nodes);
+for i = 1:num_clusters
+    for j = 1:nodes_per_cluster
+        node_id = (i - 1) * nodes_per_cluster + j;
+        if j > 1
+            adjacency_matrix(node_id, node_id - 1) = 1;
+            adjacency_matrix(node_id - 1, node_id) = 1;
+        end
+        if j < nodes_per_cluster
+            adjacency_matrix(node_id, node_id + 1) = 1;
+            adjacency_matrix(node_id + 1, node_id) = 1;
+        end
     end
 end
+
+iterations = 1000; % number of simulation iterations
+for iter = 1:iterations
+    % Broadcast synchronization messages
+    for node_id = 1:total_nodes
+        neighbors = find(adjacency_matrix(node_id, :));
+        for neighbor_id = neighbors
+            % Calculate difference in clocks
+            delta_t = local_clocks(node_id) - local_clocks(neighbor_id);
+            % Estimate offset and skew
+            if abs(delta_t - offsets(node_id)) < sync_threshold
+                offsets(node_id) = (offsets(node_id) + delta_t) / 2;
+                skews(node_id) = (skews(node_id) + drift) / 2;
+            end
+        end
+    end
+    
+    % Update local clocks
+    for node_id = 1:total_nodes
+        local_clocks(node_id) = local_clocks(node_id) + skews(node_id);
+    end
+end
+
+% Display results
+disp('Final global clock offsets:');
+disp(offsets);
