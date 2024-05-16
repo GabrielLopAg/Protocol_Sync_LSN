@@ -5,7 +5,7 @@ I = 7; % Numero de grados
 N = 5; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
-lambda = 3e-1; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
+lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
 sigma = 1e-3; % s
 
 tau_difs = 10e-3;
