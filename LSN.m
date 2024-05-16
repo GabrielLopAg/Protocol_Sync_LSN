@@ -6,7 +6,7 @@ N = 5; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
-sigma = 1e-3; % s
+sigma = 1e-3; % seg
 
 tau_difs = 10e-3;
 tau_rts = 11e-3;
@@ -19,13 +19,33 @@ tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
 
 tsim = 0; % medido en s
-% T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
+
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.8;
 p_loc = 1 - p_rel;
+
+% Node parameters
+% freq_stability = 200e-6; % -100ppm to 100ppm
+% freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
+freq_nom = 7.3728e6; % 7.3728 MHz
+freq_desv = 1e-4;
+max_offset = 200e-6; % maximum offset for initial synchronization
+clocks = zeros(N, I);
+freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
+
+offsets = zeros(N,I);
+data_offsets = [];
+% data_clocks = zeros(steps,N,I);
+% data_offsets = data_clocks;            
+
+contador = 0;
+
+%%%
+% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5);
+%%%
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
@@ -44,6 +64,8 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
+t = linspace(0,tsim,contador)
+
 % Parámetros de Evaluación
 perdidos = 0;
 tiempoTx = zeros(I,1);
@@ -61,7 +83,7 @@ while tsim<Ttot
             
             pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
             if pos==0
-                perdidos = perdidos +1;
+                perdidos = perdidos + 1;
             else
                 Grado(buf_loc, pos, n(1), n(2)) = id;                
             end
@@ -71,7 +93,6 @@ while tsim<Ttot
         %         disp(i)
         %         aux = Grado(:,:,i);
         %         disp(aux)
-
         
         % Proceso de contención
         tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
@@ -90,6 +111,10 @@ while tsim<Ttot
             % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
             tiempo = sigma*N + tau_difs + tau_rts;
+            clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+            contador = contador + 1;
+            offsets(:,:) = clocks - tsim;
+            data_offsets(contador,:,:) = offsets;
             tiempoSp = tiempoSp + N*T;
             if i>1
                 tiempoSp(i-1) = tiempoSp(i-1) - mRx*tiempo;
@@ -113,8 +138,8 @@ while tsim<Ttot
         
         if i>1
             % disp("Tx " + tiene_pkt(ganador));
-
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
+
             j = sum(hn>=ganador);
 
             if pos==0 % BUFFER RELAY LLENO
@@ -143,7 +168,7 @@ while tsim<Ttot
 
             tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
         else % recepción en Sink
-            id_r = Grado(sel_buffer,K,ganador,1);
+            id_r = Grado(sel_buffer, K, ganador, 1);
             rx_sink = [rx_sink id_r];
             pkts(id_r,3) = tsim-pkts(id_r,3);
 
@@ -155,10 +180,16 @@ while tsim<Ttot
             tiempoSp(i) = tiempoSp(i) + (N-1)*T - mTx*tiempo;
         end
         Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
-%             tx = tx+1;
+        % tx = tx+1;
 
         tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T;
-        tsim = tsim + T;
+        tsim = tsim + T;        
+        clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+        contador = contador + 1;
+        offsets(:,:) = clocks - tsim;
+        data_offsets(contador,:,:) = offsets;
+        % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
+        
     end % ended barrido
     %     disp('Nodo sink')
  
@@ -167,7 +198,11 @@ while tsim<Ttot
     % disp(relojes_nodos);
 
     tiempoSp = tiempoSp + N*T*(xi+2-I);
-    tsim = tsim + T*(xi+2-I);
+    tsim = tsim + T*(xi+2-I);    
+    clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
+    contador = contador + 1;
+    offsets(:,:) = clocks - tsim;
+    data_offsets(contador,:,:) = offsets;
 end % ended tsim
 
 %% Parametro de evaluacion
