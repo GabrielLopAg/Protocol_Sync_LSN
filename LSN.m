@@ -8,7 +8,7 @@ xi = 18; % Numero de ranuras de sleeping
 lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
 
 tsim = 0; % medido en ranuras
-sigma = 1e-3; % ms
+sigma = 1e-3; % seg
 
 tau_difs = 10e-3;
 tau_rts = 11e-3;
@@ -18,15 +18,25 @@ tau_data = 43e-3;
 tau_sifs = 5e-3;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
-T = tau_msg + sigma*N; % Duración de una ranura (N = W)
+T = tau_msg + sigma*N; % Duración de una ranura mseg (N = W)
 
-% T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.2;
 p_loc = 1 - p_rel;
+
+% Node parameters
+% freq_stability = 200e-6; % -100ppm to 100ppm
+% freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
+freq_nom = 7.3728e6; % 7.3728 MHz
+freq_desv = 1e-4;
+max_offset = 200e-6; % maximum offset for initial synchronization
+clocks = zeros(N, I);
+freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
+            
+% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
@@ -72,7 +82,6 @@ while tsim<Ttot
         %         disp(i)
         %         aux = Grado(:,:,i);
         %         disp(aux)
-
         
         % Proceso de contención
         tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
@@ -82,6 +91,8 @@ while tsim<Ttot
         if numel(tiene_pkt)==0
             % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
+            clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+            % h_offsets(:,i) = clocks - i*T; ajustar esta matriz
             tiempoSp = tiempoSp + N*T;
             continue
         end
@@ -101,10 +112,9 @@ while tsim<Ttot
         
         if i>1
             % disp("Tx " + tiene_pkt(ganador));
-
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
             if pos==0 % BUFFER LLENO
-                perdidos = perdidos +1; % ?
+                perdidos = perdidos + 1; % ?
                 % tiempoRx(i-1) = tiempoRx(i-1) + N*N*sigma;
                 tiempoSp(i) = tiempoSp(i) + T;
                 tiempoSp(i-1) = tiempoSp(i-1) + T;
@@ -117,17 +127,20 @@ while tsim<Ttot
             tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T;
             tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
         else % recepción en Sink
-            id_r = Grado(sel_buffer,K,ganador,1);
+            id_r = Grado(sel_buffer, K, ganador, 1);
             rx_sink = [rx_sink id_r];
-            pkts(id_r,3) = tsim-pkts(id_r,3);
+            pkts(id_r,3) = tsim - pkts(id_r,3);
             tiempoTx(i) = tiempoTx(i) + T;
             tiempoSp(i) = tiempoSp(i) + (N-1)*T;
         end
         Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
-%             tx = tx+1;
+        % tx = tx+1;
 
         tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T;
         tsim = tsim + T;
+        clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+        % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
+        
     end % ended barrido
     %     disp('Nodo sink')
  
@@ -137,6 +150,7 @@ while tsim<Ttot
 
     tiempoSp = tiempoSp + N*T*(xi+2-I);
     tsim = tsim + T*(xi+2-I);
+    clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
 end % ended tsim
 
 [tiempoSp tiempoRx tiempoTx tiempoSp+tiempoRx+tiempoTx]
