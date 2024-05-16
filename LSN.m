@@ -1,4 +1,12 @@
 close all
+clear variables
+
+I = 7; % Numero de grados
+N = 5; % Numero de nodos por grado (5, 10, 15, 20)
+K = 10; % Numero de espacios en buffer por nodo
+xi = 18; % Numero de ranuras de sleeping
+lambda = 3e-1; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
+sigma = 1e-3; % s
 
 tau_difs = 10e-3;
 tau_rts = 11e-3;
@@ -8,23 +16,15 @@ tau_data = 43e-3;
 tau_sifs = 5e-3;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
-T = tau_msg + sigma*W; % Duración de una ranura 
+T = tau_msg + sigma*N; % Duración de una ranura en s
 
-I = 7; % Numero de grados
-N = 5; % Numero de nodos por grado (5, 10, 15, 20)
-K = 10; % Numero de espacios en buffer por nodo
-W = N; % Numero de mini-ranuras en la ventana de contención 
-xi = 18; % Numero de ranuras de sleeping
-lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2)
-
-tsim = 0; % medido en ranuras
-sigma = 1e-3; % DUMMY debe ajustarse en ms
+tsim = 0; % medido en s
 % T = 1; % tiempo de ranura (1 ranura)  DEBE ajustarse en ms
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e4; % Ciclos que dura la simulación
+Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
-p_rel = 0.2;
+p_rel = 0.8;
 p_loc = 1 - p_rel;
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
@@ -77,11 +77,24 @@ while tsim<Ttot
         tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
         tiene_pkt_rel = find(Grado(buf_rel,K,:,i)); % Nodos que tienen pkt en buffer relay
         tiene_pkt = unique([tiene_pkt_loc; tiene_pkt_rel]);
+
+        if i>1
+            mRx = N - nnz(Grado(buf_rel, 1, :, i-1));
+        else
+            mRx = 0;
+        end
+        mTx = numel(tiene_pkt);
+
         % buscar si tiene paquetes en el búfer
         if numel(tiene_pkt)==0
             % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
+            tiempo = sigma*N + tau_difs + tau_rts;
             tiempoSp = tiempoSp + N*T;
+            if i>1
+                tiempoSp(i-1) = tiempoSp(i-1) - mRx*tiempo;
+                tiempoRx(i-1) = tiempoRx(i-1) + mRx*tiempo;
+            end
             continue
         end
 
@@ -102,25 +115,44 @@ while tsim<Ttot
             % disp("Tx " + tiene_pkt(ganador));
 
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
-            if pos==0 % BUFFER LLENO
+            j = sum(hn>=ganador);
+
+            if pos==0 % BUFFER RELAY LLENO
                 perdidos = perdidos +1; % ?
-                % tiempoRx(i-1) = tiempoRx(i-1) + N*N*sigma;
-                tiempoSp(i) = tiempoSp(i) + T;
+                tiempo = sigma*(j-1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
+                % Intenta transmitir, pero no hay Rx de CTS
+                % No aparece en las ecuaciones
+                tiempoTx(i) = tiempoTx(i) + tiempo; 
+                tiempoSp(i) = tiempoSp(i) + T - tiempo;
+
                 tiempoSp(i-1) = tiempoSp(i-1) + T;
             else
                 Grado(buf_rel, pos, ganador, i-1) = Grado(sel_buffer, K, ganador, i);
-                tiempoRx(i-1) = tiempoRx(i-1) + T;
-                tiempoTx(i)   = tiempoTx(i)   + T;
+                tiempo = sigma*(j-1) + tau_msg;
+                tiempoTx(i)   = tiempoTx(i)   + tiempo;
+                tiempoRx(i-1) = tiempoRx(i-1) + tiempo;
+                tiempoSp([i-1 i]) = tiempoSp([i-1 i]) + T - tiempo;
             end
-            tiempoSp(i) = tiempoSp(i) + (N-1)*T;
-            tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T;
+            tiempo = sigma*(j-1) + tau_difs;
+            tiempoTx(i) = tiempoTx(i) + mTx*tiempo;
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T - mTx*tiempo;
+
+            tiempo = tiempo + tau_rts;
+            tiempoRx(i-1) = tiempoRx(i-1) + mRx*tiempo;
+            tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - mRx*tiempo;
+
             tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
         else % recepción en Sink
             id_r = Grado(sel_buffer,K,ganador,1);
             rx_sink = [rx_sink id_r];
             pkts(id_r,3) = tsim-pkts(id_r,3);
-            tiempoTx(i) = tiempoTx(i) + T;
-            tiempoSp(i) = tiempoSp(i) + (N-1)*T;
+
+            tiempo = sigma*(j-1) + tau_msg;
+            tiempoTx(i) = tiempoTx(i) + tiempo;
+            tiempoSp(i) = tiempoSp(i) + T-tiempo;
+            tiempo = sigma*(j-1) + tau_difs;
+            tiempoTx(i) = tiempoTx(i) + mTx*tiempo;
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T - mTx*tiempo;
         end
         Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
 %             tx = tx+1;
@@ -142,7 +174,7 @@ end % ended tsim
 % Calculo de potencia
 table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
     'VariableNames',["S", "Rx", "Tx", "Suma"])
-
+% tsim*N
 
 
 % Throughput de la red
@@ -161,7 +193,7 @@ title('Retardo promedio del paquete');
 xlabel('Grado de origen');
 ylabel('Retardo [ciclos]');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N; "W = "+W], ...
+   ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
 % Paquetes perdidos
@@ -175,7 +207,7 @@ bar(perd)
 title('Probabilidad de paquete perdido');
 xlabel('Grado de origen');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N; "W = "+W], ...
+   ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
 % histogram(pkts(ismember(pkts(:,1),rx_sink),2));
