@@ -1,4 +1,5 @@
 close all
+clear all
 
 I = 7; % Numero de grados
 N = 20; % Numero de nodos por grado (5, 10, 15, 20)
@@ -35,8 +36,17 @@ freq_desv = 1e-4;
 max_offset = 200e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
-            
-% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
+
+offsets = zeros(N,I);
+data_offsets = [];
+% data_clocks = zeros(steps,N,I);
+% data_offsets = data_clocks;            
+
+contador = 0;
+
+%%%
+% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5);
+%%%
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
@@ -92,7 +102,9 @@ while tsim<Ttot
             % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
-            % h_offsets(:,i) = clocks - i*T; ajustar esta matriz
+            contador = contador + 1;
+            offsets(:,:) = clocks - tsim*T;
+            data_offsets(contador,:,:) = offsets;
             tiempoSp = tiempoSp + N*T;
             continue
         end
@@ -137,8 +149,11 @@ while tsim<Ttot
         % tx = tx+1;
 
         tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T;
-        tsim = tsim + T;
+        tsim = tsim + T;        
         clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+        contador = contador + 1;
+        offsets(:,:) = clocks - tsim*T;
+        data_offsets(contador,:,:) = offsets;
         % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
         
     end % ended barrido
@@ -149,8 +164,11 @@ while tsim<Ttot
     % disp(relojes_nodos);
 
     tiempoSp = tiempoSp + N*T*(xi+2-I);
-    tsim = tsim + T*(xi+2-I);
+    tsim = tsim + T*(xi+2-I);    
     clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
+    contador = contador + 1;
+    offsets(:,:) = clocks - tsim*(T*(xi+2-I));
+    data_offsets(contador,:,:) = offsets;
 end % ended tsim
 
 [tiempoSp tiempoRx tiempoTx tiempoSp+tiempoRx+tiempoTx]
