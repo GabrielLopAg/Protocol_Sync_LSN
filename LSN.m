@@ -65,6 +65,8 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
+t = linspace(0,tsim,contador)
+
 % Parámetros de Evaluación
 perdidos = 0;
 tiempoTx = zeros(I,1);
@@ -103,7 +105,7 @@ while tsim<Ttot
             tsim = tsim + T;
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
-            offsets(:,:) = clocks - tsim*T;
+            offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
             tiempoSp = tiempoSp + N*T;
             continue
@@ -152,7 +154,7 @@ while tsim<Ttot
         tsim = tsim + T;        
         clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
         contador = contador + 1;
-        offsets(:,:) = clocks - tsim*T;
+        offsets(:,:) = clocks - tsim;
         data_offsets(contador,:,:) = offsets;
         % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
         
@@ -167,7 +169,7 @@ while tsim<Ttot
     tsim = tsim + T*(xi+2-I);    
     clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
-    offsets(:,:) = clocks - tsim*(T*(xi+2-I));
+    offsets(:,:) = clocks - tsim;
     data_offsets(contador,:,:) = offsets;
 end % ended tsim
 
