@@ -26,7 +26,7 @@ for i = 1:T:steps
                 offset = offsets(node, cluster);
                 clocks(node, cluster) = clocks(node, cluster) - offset;                
                 % Drift correction using linear regression               
-                Y = squeeze(data_offsets(i-7:i,node,cluster));
+                Y = squeeze(data_offsets(i-7:i, node, cluster));
                 % calculate coefficients
                 b = X\Y;
                 % correct the local frequency of the node
