@@ -214,27 +214,60 @@ while tsim<Ttot
 
     end % ended sync period
     
-    for cluster = 1:I            
-        X = (i-7:i)';
+    for cluster = 1:I   
+        ref = randi(N);
         if cluster>1
             tiempoTx(cluster-1) = tiempoTx(cluster-1) + tau_msg_sync;
             tiempoSp(cluster-1) = tiempoTx(cluster-1) - tau_msg_sync;
+
+            tiempoRx(cluster-1) = tiempoRx(cluster-1) + (N-1)*tau_msg_sync;
+            tiempoSp(cluster-1) = tiempoSp(cluster-1) - (N-1)*tau_msg_sync;
+
+            X = data_offsets(end-7:end, ref, cluster-1);
+        else
+            X = (-7:0)'*T + tsim; % ?
         end
-        tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
-        tiempoSp(cluster) = tiemopSp(cluster) - (N-1)*tau_msg_sync;
+        tiempoRx(cluster) = tiempoRx(cluster) + tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
+
         tiempoSp = tiempoSp + N*T;
         for node = 1:N
+            if node~=ref
+                % Offset correction
+                offset = offsets(node, cluster);
+                clocks(node, cluster) = clocks(node, cluster) - offset;                
+                % Drift correction using linear regression               
+                Y = squeeze(data_offsets(end-7:end, node, cluster));
+                % calculate coefficients
+                b = X\Y;
+                % correct the local frequency of the node
+                freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));               
+            end
+        end
+        if cluster<I
+            node = ref;
             % Offset correction
-            offset = offsets(node, cluster);
-            clocks(node, cluster) = clocks(node, cluster) - offset;                
+            offset = offsets(node, cluster+1);
+            clocks(node, cluster+1) = clocks(node, cluster+1) - offset;                
             % Drift correction using linear regression               
-            Y = squeeze(data_offsets(i-7:i, node, cluster));
+            Y = squeeze(data_offsets(end-7:end, node, cluster+1));
             % calculate coefficients
             b = X\Y;
             % correct the local frequency of the node
-            freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));               
+            freq_loc(node,cluster+1) = freq_loc(node,cluster+1) / (1 + b(1));  
         end
     end
+    tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
+    tiempoSp(cluster) = tiempoTx(cluster) - tau_msg_sync;
+
+
+    tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
+    tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
+
+    tiempoSp = tiempoSp + N*T;
+
+    tiempoSp = tiempoSp + N*T*(xi+2-2*I-1);
+    tsim = tsim + T*(xi+2-2*I-1);   
 end % ended tsim
 
 %% Parametro de evaluacion
@@ -298,10 +331,12 @@ function hn = hash(N, tsim, T)
     k = 0:N-1;
     p = nextprime(N); % prime number p ≥ N
     
+    s = rng();
     rng(tsim/T)
     a_n = randi([1, p-1]); % PREGUNTAR a_n=0 genera el mismo ticket N veces
     b_n = randi([0, p-1]);
     
     aux = (a_n*k + b_n); 
     hn = mod(aux, p);
+    rng(s);
 end
