@@ -18,6 +18,9 @@ tau_sifs = 5e-3;
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
 
+tau_data_sync = 43e-3;
+tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
+
 tsim = 0; % medido en s
 
 Tc = T*(xi+2); % Tiempo de ciclo
@@ -31,7 +34,7 @@ p_loc = 1 - p_rel;
 % freq_stability = 200e-6; % -100ppm to 100ppm
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
-freq_desv = 1e-4;
+freq_desv = 1e-4; % Hz
 max_offset = 200e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
@@ -42,10 +45,6 @@ data_offsets = [];
 % data_offsets = data_clocks;            
 
 contador = 0;
-
-%%%
-% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5);
-%%%
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
@@ -63,8 +62,6 @@ rx_sink = [];
 pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
-
-t = linspace(0,tsim,contador)
 
 % Parámetros de Evaluación
 perdidos = 0;
@@ -190,6 +187,30 @@ while tsim<Ttot
         data_offsets(contador,:,:) = offsets;
         % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
         
+        if mod(tsim, 30) < T % every 30 seconds, perform synchronization
+            for cluster = 1:I
+                X = (contador-7:contador)';
+                if cluster>1
+                    tiempoTx(cluster-1) = tiempoTx(cluster-1) + tau_msg_sync;
+                    tiempoSp(cluster-1) = tiempoTx(cluster-1) - tau_msg_sync;
+                end
+                tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
+                tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
+                tiempoSp = tiempoSp + N*T;
+                for node = 1:N
+                    % Offset correction
+                    offset = offsets(node, cluster);
+                    clocks(node, cluster) = clocks(node, cluster) - offset;                
+                    % Drift correction using linear regression               
+                    Y = squeeze(data_offsets(contador-7:contador,node,cluster));
+                    % calculate coefficients
+                    b = X\Y;
+                    % correct the local frequency of the node
+                    freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));               
+                end
+            end
+        end
+        
     end % ended barrido
     %     disp('Nodo sink')
  
@@ -210,7 +231,6 @@ end % ended tsim
 table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
     'VariableNames',["S", "Rx", "Tx", "Suma"])
 % tsim*N
-
 
 % Throughput de la red
 th = numel(rx_sink)/Nc
@@ -248,6 +268,11 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 % histogram(pkts(ismember(pkts(:,1),rx_sink),2));
 % figure(2)
 % histogram(pkts(:,2));
+
+% Graficas de offset
+tiempo_ = linspace(0,tsim,contador);
+figure(3)
+plot(tiempo_, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 tsim])
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
