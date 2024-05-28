@@ -2,10 +2,10 @@ close all
 clear variables
 
 I = 7; % Numero de grados
-N = 5; % Numero de nodos por grado (5, 10, 15, 20)
+N = 35; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
-lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
+lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
 sigma = 1e-3; % seg
 
 tau_difs = 10e-3;
@@ -24,7 +24,7 @@ tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
 tsim = 0; % medido en s
 
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e1; % Ciclos que dura la simulación
+Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.8;
@@ -35,11 +35,11 @@ p_loc = 1 - p_rel;
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 1e-4;
-max_offset = 200e-6; % maximum offset for initial synchronization
+max_offset = 20e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
-L = 15; % Periodo de sincronizacion
+L = 10; % Periodo de sincronizacion
 
 offsets = zeros(N,I);
 data_offsets = [];
@@ -72,7 +72,7 @@ ta = 0;
 t = linspace(0,tsim,contador);
 
 % Parámetros de Evaluación
-perdidos = 0;
+perdidos = zeros(I,1);
 tiempoTx = zeros(I,1);
 tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
@@ -89,7 +89,7 @@ while tsim<Ttot
                 
                 pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 if pos==0
-                    perdidos = perdidos + 1;
+                    perdidos(n(2)) = perdidos(n(2)) + 1;
                 else
                     Grado(buf_loc, pos, n(1), n(2)) = id;                
                 end
@@ -116,7 +116,7 @@ while tsim<Ttot
             if numel(tiene_pkt)==0
                 % No hay paquetes para transmitir en ese grado
                 tsim = tsim + T;
-                tiempo = sigma*N + tau_difs + tau_rts;
+                tiempo = tau_difs + sigma*N + tau_rts + tau_sifs;
                 clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
                 contador = contador + 1;
                 offsets(:,:) = clocks - tsim;
@@ -148,7 +148,7 @@ while tsim<Ttot
                 pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
     
                 if pos==0 % BUFFER RELAY LLENO
-                    perdidos = perdidos +1; % ?
+                    perdidos(pkts(Grado(sel_buffer, K, ganador, i),2)) = perdidos(pkts(Grado(sel_buffer, K, ganador, i),2)) +1; % ?
                     tiempo = sigma*(j-1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
                     % Intenta transmitir, pero no hay Rx de CTS
                     % No aparece en las ecuaciones
@@ -277,30 +277,31 @@ table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
 % tsim*N
 
 
-% Throughput de la red
-th = numel(rx_sink)/Nc
+% Throughput de la red (pkts/s)
+th = numel(rx_sink)/tsim 
 
 rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
 
-% Retardo por grado
+% Retardo por grado (seg)
 retardo = zeros(1,I);
 for i = 1:I
-    retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) ) / Tc;
+    retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) );
 end
 figure(1);
 bar(retardo);
 title('Retardo promedio del paquete');
 xlabel('Grado de origen');
-ylabel('Retardo [ciclos]');
+ylabel('Retardo [seg]');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
    ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
-% Paquetes perdidos
+% Paquetes perdidos (%)
 perd = zeros(1,I);
+p = zeros(1,I);
 for i = 1:I
-    p = numel( pkts(pkts(:,2)==i,1) );
-    perd(i) = (p - numel( rx_sink(rx_sink(:,2)==i,1) )) / p;
+    p(i) = numel( pkts(pkts(:,2)==i,1) );
+    perd(i) = (p(i) - numel( rx_sink(rx_sink(:,2)==i,1) )) / p(i);
 end
 figure(2);
 bar(perd)

@@ -1,11 +1,11 @@
 close all
-clear variables
+clear tsim tiempoRx tiempoTx tiempoSp th Grado rx_sink ta pkts
 
 I = 7; % Numero de grados
-N = 5; % Numero de nodos por grado (5, 10, 15, 20)
-K = 10; % Numero de espacios en buffer por nodo
+% N = 40; % Numero de nodos por grado (5, 10, 15, 20)
+K = 7; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
-lambda = 3e-3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
+lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
 sigma = 1e-3; % seg
 
 tau_difs = 10e-3;
@@ -21,10 +21,10 @@ T = tau_msg + sigma*N; % Duración de una ranura en s
 tsim = 0; % medido en s
 
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e3; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
-p_rel = 0.8;
+% p_rel = 0.1;
 p_loc = 1 - p_rel;
 
 % Node parameters
@@ -64,7 +64,7 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
-t = linspace(0,tsim,contador)
+t = linspace(0,tsim,contador);
 
 % Parámetros de Evaluación
 perdidos = 0;
@@ -110,7 +110,7 @@ while tsim<Ttot
         if numel(tiene_pkt)==0
             % No hay paquetes para transmitir en ese grado
             tsim = tsim + T;
-            tiempo = sigma*N + tau_difs + tau_rts;
+            tiempo = tau_difs + sigma*N + tau_rts + tau_sifs;
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
             offsets(:,:) = clocks - tsim;
@@ -144,7 +144,7 @@ while tsim<Ttot
 
             if pos==0 % BUFFER RELAY LLENO
                 perdidos = perdidos +1; % ?
-                tiempo = sigma*(j-1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
+                tiempo = sigma*(j-1) + tau_difs + tau_rts + tau_sifs + tau_cts; % Preguntar sobre tau_rts
                 % Intenta transmitir, pero no hay Rx de CTS
                 % No aparece en las ecuaciones
                 tiempoTx(i) = tiempoTx(i) + tiempo; 
@@ -207,13 +207,13 @@ end % ended tsim
 
 %% Parametro de evaluacion
 % Calculo de potencia
-table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
-    'VariableNames',["S", "Rx", "Tx", "Suma"])
+table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx - N*tsim, ...
+    'VariableNames',["S", "Rx", "Tx", "Suma"]);
 % tsim*N
 
 
 % Throughput de la red
-th = numel(rx_sink)/Nc
+th = numel(rx_sink)/tsim;
 
 rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
 
@@ -245,9 +245,9 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
    ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
-% histogram(pkts(ismember(pkts(:,1),rx_sink),2));
-% figure(2)
-% histogram(pkts(:,2));
+histogram(pkts(ismember(pkts(:,1),rx_sink),2));
+figure(2)
+histogram(pkts(:,2));
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
