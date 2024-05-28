@@ -2,7 +2,7 @@ close all
 clear tsim tiempoRx tiempoTx tiempoSp th Grado rx_sink ta pkts
 
 I = 7; % Numero de grados
-% N = 40; % Numero de nodos por grado (5, 10, 15, 20)
+N = 40; % Numero de nodos por grado (5, 10, 15, 20)
 K = 7; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
@@ -24,7 +24,7 @@ Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
-% p_rel = 0.1;
+p_rel = 0.1;
 p_loc = 1 - p_rel;
 
 % Node parameters
