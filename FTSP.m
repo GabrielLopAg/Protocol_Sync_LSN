@@ -13,7 +13,7 @@ offsets = zeros(N,I);
 data_clocks = zeros(steps,N,I);
 data_offsets = data_clocks;
 
-for i = 1:T:steps
+for i = 1:steps
     clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);    
     offsets(:,:) = clocks - i*T;
     data_offsets(i,:,:) = offsets;
