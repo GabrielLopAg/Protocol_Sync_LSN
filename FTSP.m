@@ -2,7 +2,7 @@ clear all
 N = 5; % number of nodes for each cluster
 I = 7; % number of clusters
 clocks = zeros(N,I); % clocks of the nodes of the entire network
-max_offset = 200e-6;
+max_offset = 40e-6;
 freq_nom = 7.3728e6;
 T = 0.121; 
 freq_loc = (randn(size(clocks)) * 1e-4 + 1 ) * freq_nom;
