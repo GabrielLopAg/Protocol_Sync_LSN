@@ -34,7 +34,7 @@ p_loc = 1 - p_rel;
 % freq_stability = 200e-6; % -100ppm to 100ppm
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
-freq_desv = 40e-6;
+freq_desv = 400e-6;
 max_offset = 20e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
@@ -93,7 +93,8 @@ while tsim<Ttot
             contador = contador + 1;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
-            data_clocks(contador,:,:) = clocks;
+            data_clocks(contador,:,:) = clocks;    
+                data_freq(contador,:,:) = freq_loc;
             time_offsets(contador) = tsim;
             % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
             
@@ -105,7 +106,8 @@ while tsim<Ttot
             contador = contador + 1;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
-            data_clocks(contador,:,:) = clocks;
+            data_clocks(contador,:,:) = clocks;    
+                data_freq(contador,:,:) = freq_loc;
             time_offsets(contador) = tsim;
         end
 
@@ -116,7 +118,8 @@ while tsim<Ttot
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
     data_offsets(contador,:,:) = offsets;
-    data_clocks(contador,:,:) = clocks;
+    data_clocks(contador,:,:) = clocks;    
+                data_freq(contador,:,:) = freq_loc;
     time_offsets(contador) = tsim;
 
     X = (0:7)'*1/4.8e3 + tsim; % Tx 4.8KBps
@@ -130,11 +133,12 @@ while tsim<Ttot
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
         data_offsets(contador,:,:) = offsets;
-        data_clocks(contador,:,:) = clocks;
+        data_clocks(contador,:,:) = clocks;    
+                data_freq(contador,:,:) = freq_loc;
         time_offsets(contador) = tsim;               
         % Drift correction using linear regression               
     % Y = squeeze(data_offsets(end-7:end, node, cluster));
-    Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom;
+    Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
         % calculate coefficients
     b = X\Y;
         % correct the local frequency of the node
@@ -148,7 +152,8 @@ while tsim<Ttot
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
         data_offsets(contador,:,:) = offsets;
-        data_clocks(contador,:,:) = clocks;
+        data_clocks(contador,:,:) = clocks;    
+        data_freq(contador,:,:) = freq_loc; 
         time_offsets(contador) = tsim;
 
         % X = data_clocks(end-7:end, ref, cluster);
@@ -163,11 +168,12 @@ while tsim<Ttot
             contador = contador + 1;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
-            data_clocks(contador,:,:) = clocks;
+            data_clocks(contador,:,:) = clocks;    
+            data_freq(contador,:,:) = freq_loc;
             time_offsets(contador) = tsim;             
                 % Drift correction using linear regression               
             % Y = squeeze(data_offsets(end-7:end, node, cluster+1));
-            Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - tsim;
+            Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
                 % calculate coefficients
             b = X\Y;
                 % correct the local frequency of the node
@@ -182,7 +188,7 @@ while tsim<Ttot
                 clocks(node, cluster) = clocks(node, cluster) - offset;                
                 % Drift correction using linear regression               
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
-                Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - tsim;
+                Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
                 % calculate coefficients
                 b = X\Y;
                 % correct the local frequency of the node
@@ -197,8 +203,8 @@ while tsim<Ttot
     offsets(:,:) = clocks - tsim;
     data_offsets(contador,:,:) = offsets;
     data_clocks(contador,:,:) = clocks;
+    data_freq(contador,:,:) = freq_loc;
     time_offsets(contador) = tsim;
-    freq_loc;
 end % ended tsim
 
 %% Parametro de evaluacion
