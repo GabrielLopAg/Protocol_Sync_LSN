@@ -50,6 +50,7 @@ offsets = zeros(N,I);
 data_offsets = [];
 time_offsets = [];
 data_clocks  = [];
+data_freq = [];
 % data_clocks = zeros(steps,N,I);
 % data_offsets = data_clocks;            
 
@@ -138,6 +139,7 @@ while tsim<Ttot
     b = X\Y;
         % correct the local frequency of the node
     freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));  
+    data_freq(contador,:,:) = freq_loc;
 
     for cluster = 1:I  
 
@@ -170,6 +172,7 @@ while tsim<Ttot
             b = X\Y;
                 % correct the local frequency of the node
             freq_loc(node,cluster+1) = freq_loc(node,cluster+1) / (1 + b(1));  
+            data_freq(contador,:,:) = freq_loc;
         end
 
         for node = 1:N
@@ -183,18 +186,24 @@ while tsim<Ttot
                 % calculate coefficients
                 b = X\Y;
                 % correct the local frequency of the node
-                freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));               
+                freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));       
+                data_freq(contador,:,:) = freq_loc;
             end
         end
     end
     tsim = tsim + T*(xi+2-2*I-1);   
-    clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
+    clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + (T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
     data_offsets(contador,:,:) = offsets;
     data_clocks(contador,:,:) = clocks;
     time_offsets(contador) = tsim;
+    freq_loc;
 end % ended tsim
 
 %% Parametro de evaluacion
+figure(1)
 plot(time_offsets, squeeze(data_offsets(:,2,:)));legend(""+(1:I))
+
+figure(2)
+plot(data_freq(:,1,1)), title('frecuencia del nodo 1 del grado 1')
