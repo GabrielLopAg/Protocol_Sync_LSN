@@ -2,7 +2,7 @@ close all
 clear variables
 
 I = 7; % Numero de grados
-N = 1; % Numero de nodos por grado (5, 10, 15, 20)
+N = 3; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875e3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
@@ -165,7 +165,7 @@ while tsim<Ttot
             time_offsets(contador) = tsim;             
                 % Drift correction using linear regression               
             % Y = squeeze(data_offsets(end-7:end, node, cluster+1));
-            Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom;
+            Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - tsim;
                 % calculate coefficients
             b = X\Y;
                 % correct the local frequency of the node
@@ -179,7 +179,7 @@ while tsim<Ttot
                 clocks(node, cluster) = clocks(node, cluster) - offset;                
                 % Drift correction using linear regression               
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
-                Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom;
+                Y = (1:8)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - tsim;
                 % calculate coefficients
                 b = X\Y;
                 % correct the local frequency of the node
@@ -197,4 +197,4 @@ while tsim<Ttot
 end % ended tsim
 
 %% Parametro de evaluacion
-plot(time_offsets, squeeze(data_offsets(:,1,:)));legend(""+(1:I))
+plot(time_offsets, squeeze(data_offsets(:,2,:)));legend(""+(1:I))
