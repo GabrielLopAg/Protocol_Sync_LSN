@@ -188,7 +188,7 @@ while tsim<Ttot
         end
     end
     tsim = tsim + T*(xi+2-2*I-1);   
-    clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
+    clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + (T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
     data_offsets(contador,:,:) = offsets;
