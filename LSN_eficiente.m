@@ -232,6 +232,12 @@ while tsim<Ttot
 
         tiempoSp = tiempoSp + N*T;
         tsim = tsim + T;
+
+        contador = contador + 1;
+        clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
+        data_clocks(contador,:,:) = clocks;
+        offsets(:,:) = clocks + tsim;
+        data_offsets(contador,:,:) = offsets;
         for node = 1:N
             if node~=ref
                 % Offset correction
@@ -269,6 +275,12 @@ while tsim<Ttot
 
     tiempoSp = tiempoSp + N*T*(xi+2-2*I-1);
     tsim = tsim + T*(xi+2-2*I-1);   
+
+    contador = contador + 1;
+    clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + ( T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
+    data_clocks(contador,:,:) = clocks;
+    offsets(:,:) = clocks + tsim;
+    data_offsets(contador,:,:) = offsets;
 end % ended tsim
 
 %% Parametro de evaluacion
@@ -315,6 +327,11 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 % histogram(pkts(ismember(pkts(:,1),rx_sink),2));
 % figure(2)
 % histogram(pkts(:,2));
+
+% Graficas de offset
+tiempo_ = linspace(0,tsim,contador);
+figure(3)
+plot(tiempo_, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 300])
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
