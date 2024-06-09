@@ -6,7 +6,7 @@ N = 35; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
-sigma = 1; % mseg
+sigma = 1e-3; % seg
 
 tau_difs = 10e-6;
 tau_rts = 11e-3;
@@ -17,7 +17,7 @@ tau_sifs = 5e-6;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
-t_byte = T/16; % mseg
+t_byte = T/16; % seg
 
 tau_data_sync = 1.6e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
@@ -224,7 +224,7 @@ title('Offsets del nodo 1 en cada grado')
 xlabel('Tiempo real [s]')
 
 subplot(212)
-plot(time_offsets, squeeze(data_offsets(:,:,7)));legend(""+(1:I))
+plot(time_offsets, squeeze(data_offsets(:,:,7)));
 title('Offsets del Grado 7')
 xlabel('Tiempo real [s]')
 
