@@ -17,7 +17,6 @@ tau_sifs = 5e-6;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
-t_byte = T/16; % seg
 
 tau_data_sync = 1.6e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
@@ -27,6 +26,8 @@ tsim = 0; % medido en s
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e5; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
+
+t_byte = Tc; % seg
 
 p_rel = 0.8;
 p_loc = 1 - p_rel;
@@ -123,7 +124,7 @@ while tsim<Ttot
                 data_freq(contador,:,:) = freq_loc;
     time_offsets(contador) = tsim;
 
-    X = (0:7)'*t_byte + tsim; % Tx 4.8KBps
+    X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
     ref = 1;%randi(N);
     node = ref;
@@ -139,7 +140,7 @@ while tsim<Ttot
         time_offsets(contador) = tsim;               
         % Drift correction using linear regression               
     % Y = squeeze(data_offsets(end-7:end, node, cluster));
-    Y = (0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+    Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
     [alpha, beta] = coef(X, X+Y);
     clocks(node, cluster) = clocks(node, cluster) - beta;
         % calculate coefficients
@@ -161,7 +162,7 @@ while tsim<Ttot
         time_offsets(contador) = tsim;
 
         % X = data_clocks(end-7:end, ref, cluster);
-        X = (0:7)'*t_byte*freq_loc(ref,cluster)/freq_nom + clocks(ref,cluster);
+        X = -(0:7)'*t_byte*freq_loc(ref,cluster)/freq_nom + clocks(ref,cluster);
         
         if cluster<I
             % Cluster head sync
@@ -177,7 +178,7 @@ while tsim<Ttot
             time_offsets(contador) = tsim;             
                 % Drift correction using linear regression               
             % Y = squeeze(data_offsets(end-7:end, node, cluster+1));
-            Y = (0:7)'*t_byte*freq_loc(node,cluster+1)/freq_nom + clocks(node,cluster+1) - X;
+            Y = -(0:7)'*t_byte*freq_loc(node,cluster+1)/freq_nom + clocks(node,cluster+1) - X;
             [alpha, beta] = coef(X, X+Y);
             clocks(node, cluster+1) = clocks(node, cluster+1) - beta;
                 % calculate coefficients
@@ -194,7 +195,7 @@ while tsim<Ttot
                 offset = clocks(node, cluster) - clocks(ref, cluster);
                 % Drift correction using linear regression               
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
-                Y = (0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+                Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
                 [alpha,beta] = coef(X, X+Y);
                 clocks(node, cluster) = clocks(node, cluster) - beta;                
                 % calculate coefficients
