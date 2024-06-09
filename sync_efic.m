@@ -2,11 +2,11 @@ close all
 clear variables
 
 I = 7; % Numero de grados
-N = 3; % Numero de nodos por grado (5, 10, 15, 20)
+N = 35; % Numero de nodos por grado (5, 10, 15, 20)
 K = 10; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
-lambda = 0.001875e3; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
-sigma = 1e-3; % seg
+lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
+sigma = 1; % mseg
 
 tau_difs = 10e-6;
 tau_rts = 11e-3;
@@ -17,8 +17,9 @@ tau_sifs = 5e-6;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
+t_byte = T/16; % mseg
 
-tau_data_sync = 4e-3;
+tau_data_sync = 1.6e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
 
 tsim = 0; % medido en s
@@ -33,9 +34,9 @@ p_loc = 1 - p_rel;
 % Node parameters
 % freq_stability = 200e-6; % -100ppm to 100ppm
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
-freq_nom = 7.3728e6; % 7.3728 MHz
-freq_desv = 400e-6;
-max_offset = 20e-6; % maximum offset for initial synchronization
+freq_nom = 7.3728e6; % 7.3728 MHz (KHz)
+freq_desv = 40e-6;
+max_offset = 40e-6; % maximum offset for initial synchronization 
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
@@ -44,7 +45,7 @@ pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
              sort(rand(1,N,I), 2)
                        ];
 
-L = 10; % Periodo de sincronizacion
+L = 15; % Periodo de sincronizacion
 
 offsets = zeros(N,I);
 data_offsets = [];
@@ -122,14 +123,14 @@ while tsim<Ttot
                 data_freq(contador,:,:) = freq_loc;
     time_offsets(contador) = tsim;
 
-    X = (0:7)'*1/4.8e3 + tsim; % Tx 4.8KBps
+    X = (0:7)'*t_byte + tsim; % Tx 4.8KBps
 
-    ref = randi(N);
+    ref = 1;%randi(N);
     node = ref;
     cluster = 1;
         % Offset correction
     offset = offsets(node, cluster);
-    clocks(node, cluster) = clocks(node, cluster) - offset;    
+    % clocks(node, cluster) = clocks(node, cluster) - offset;    
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
         data_offsets(contador,:,:) = offsets;
@@ -138,11 +139,14 @@ while tsim<Ttot
         time_offsets(contador) = tsim;               
         % Drift correction using linear regression               
     % Y = squeeze(data_offsets(end-7:end, node, cluster));
-    Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+    Y = (0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+    [alpha, beta] = coef(X, X+Y);
+    clocks(node, cluster) = clocks(node, cluster) - beta;
         % calculate coefficients
     b = X\Y;
         % correct the local frequency of the node
-    freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));  
+    % freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));      
+    freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
 
     for cluster = 1:I  
@@ -157,14 +161,14 @@ while tsim<Ttot
         time_offsets(contador) = tsim;
 
         % X = data_clocks(end-7:end, ref, cluster);
-        X = clocks(ref,cluster) + (0:7)'*1/4.8e3*freq_loc(ref,cluster)/freq_nom;
+        X = (0:7)'*t_byte*freq_loc(ref,cluster)/freq_nom + clocks(ref,cluster);
         
         if cluster<I
             % Cluster head sync
             node = ref;
                 % Offset correction
-            offset = offsets(node, cluster+1);
-            clocks(node, cluster+1) = clocks(node, cluster+1) - offset;   
+            offset = clocks(node, cluster+1) - clocks(ref, cluster+1);
+            % clocks(node, cluster+1) = clocks(node, cluster+1) - offset;   
             contador = contador + 1;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
@@ -173,26 +177,31 @@ while tsim<Ttot
             time_offsets(contador) = tsim;             
                 % Drift correction using linear regression               
             % Y = squeeze(data_offsets(end-7:end, node, cluster+1));
-            Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+            Y = (0:7)'*t_byte*freq_loc(node,cluster+1)/freq_nom + clocks(node,cluster+1) - X;
+            [alpha, beta] = coef(X, X+Y);
+            clocks(node, cluster+1) = clocks(node, cluster+1) - beta;
                 % calculate coefficients
             b = X\Y;
                 % correct the local frequency of the node
-            freq_loc(node,cluster+1) = freq_loc(node,cluster+1) / (1 + b(1));  
+            % freq_loc(node,cluster+1) = freq_loc(node,cluster+1) / (1 + b(1)); 
+            freq_loc(node,cluster+1) = freq_loc(node,cluster+1)/alpha;
             data_freq(contador,:,:) = freq_loc;
         end
 
         for node = 1:N
             if node~=ref
                 % Offset correction
-                offset = offsets(node, cluster);
-                clocks(node, cluster) = clocks(node, cluster) - offset;                
+                offset = clocks(node, cluster) - clocks(ref, cluster);
                 % Drift correction using linear regression               
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
-                Y = (0:7)'*1/4.8e3*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+                Y = (0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+                [alpha,beta] = coef(X, X+Y);
+                clocks(node, cluster) = clocks(node, cluster) - beta;                
                 % calculate coefficients
                 b = X\Y;
                 % correct the local frequency of the node
-                freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));       
+                % freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));       
+                freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
                 data_freq(contador,:,:) = freq_loc;
             end
         end
@@ -209,7 +218,36 @@ end % ended tsim
 
 %% Parametro de evaluacion
 figure(1)
-plot(time_offsets, squeeze(data_offsets(:,2,:)));legend(""+(1:I))
+subplot(211)
+plot(time_offsets, squeeze(data_offsets(:,1,:)));legend(""+(1:I))
+title('Offsets del nodo 1 en cada grado')
+xlabel('Tiempo real [s]')
+
+subplot(212)
+plot(time_offsets, squeeze(data_offsets(:,:,7)));legend(""+(1:I))
+title('Offsets del Grado 7')
+xlabel('Tiempo real [s]')
+
+ylabel('Offset local [s]')
 
 figure(2)
 plot(data_freq(:,1,1)), title('frecuencia del nodo 1 del grado 1')
+xlabel('Frecuencia [Hz]')
+
+
+%% Evaluación de parámetro b
+[a1,b1] = coef(X,Y+X)
+
+function [alpha,beta] = coef(t_recu, t_local)
+    arguments
+        t_recu (:,1) {mustBeNumeric}
+        t_local (:,1) {mustBeNumeric}
+    end
+    N = length(t_recu);
+    if N~=length(t_local)
+        error("Vectors must be the same length");
+    end
+    alpha = (N*sum(t_recu.*t_local)-sum(t_recu)*sum(t_local)) / (N*sum(t_recu.^2)-sum(t_recu)^2);
+    alpha = round(alpha,6);
+    beta = (sum(t_local)-sum(t_recu)) / N;
+end
