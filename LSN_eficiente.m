@@ -38,7 +38,7 @@ p_loc = 1 - p_rel;
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 40e-6;
-max_offset = 40e-6; % maximum offset for initial synchronization
+max_offset = 4.32e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
