@@ -8,20 +8,21 @@ xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
 sigma = 1e-3; % seg
 
-tau_difs = 10e-6;
+tau_difs = 10e-3;
 tau_rts = 11e-3;
 tau_cts = 11e-3;
 tau_ack = 11e-3;
 tau_data = 43e-3;
-tau_sifs = 5e-6;
+tau_sifs = 5e-3;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
 
-tau_data_sync = 1.6e-3;
+tau_data_sync = 11e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
 
 tsim = 0; % medido en s
+contador = 0;
 
 Tc = T*(xi+2); % Tiempo de ciclo
 Nc = 1e5; % Ciclos que dura la simulación
@@ -35,9 +36,9 @@ p_loc = 1 - p_rel;
 % Node parameters
 % freq_stability = 200e-6; % -100ppm to 100ppm
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
-freq_nom = 7.3728e6; % 7.3728 MHz (KHz)
+freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 40e-6;
-max_offset = 40e-6; % maximum offset for initial synchronization 
+max_offset = 40e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
@@ -46,21 +47,13 @@ pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
              sort(rand(1,N,I), 2)
                        ];
 
-L = 15; % Periodo de sincronizacion
+L = 10; % Periodo de sincronizacion
 
 offsets = zeros(N,I);
 data_offsets = [];
 time_offsets = [];
 data_clocks  = [];
 data_freq = [];
-% data_clocks = zeros(steps,N,I);
-% data_offsets = data_clocks;            
-
-contador = 0;
-
-%%%
-% clocks = clocks + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5);
-%%%
 
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 buf_rel = 1;
@@ -79,8 +72,6 @@ pkts = [];
 lambda2 = lambda*N*I;
 ta = 0;
 
-t = linspace(0,tsim,contador);
-
 % Parámetros de Evaluación
 perdidos = zeros(I,1);
 tiempoTx = zeros(I,1);
@@ -90,13 +81,13 @@ tiempoSp = zeros(I,1);
 while tsim<Ttot
     for sync = 1:L
         for i=I:-1:1
-            tsim = tsim + T;        
+            tsim = tsim + T;
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
+            data_clocks(contador,:,:) = clocks;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
-            data_clocks(contador,:,:) = clocks;    
-                data_freq(contador,:,:) = freq_loc;
+            data_freq(contador,:,:) = freq_loc;
             time_offsets(contador) = tsim;
             % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
             
@@ -104,18 +95,18 @@ while tsim<Ttot
         if sync ~= L
             tiempoSp = tiempoSp + N*T*(xi+2-I);
             tsim = tsim + T*(xi+2-I);    
-            clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
+            clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
+            data_clocks(contador,:,:) = clocks;
             offsets(:,:) = clocks - tsim;
             data_offsets(contador,:,:) = offsets;
-            data_clocks(contador,:,:) = clocks;    
-                data_freq(contador,:,:) = freq_loc;
+            data_freq(contador,:,:) = freq_loc;
             time_offsets(contador) = tsim;
         end
 
     end % ended sync period
     
-    tsim = tsim + T;        
+    tsim = tsim + T;
     clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
@@ -143,16 +134,13 @@ while tsim<Ttot
     Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
     [alpha, beta] = coef(X, X+Y);
     clocks(node, cluster) = clocks(node, cluster) - beta;
-        % calculate coefficients
-    b = X\Y;
-        % correct the local frequency of the node
-    % freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));      
     freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
 
-    for cluster = 1:I  
+    for cluster = 1:I
 
         tsim = tsim + T;        
+
         clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
@@ -197,11 +185,7 @@ while tsim<Ttot
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
                 Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
                 [alpha,beta] = coef(X, X+Y);
-                clocks(node, cluster) = clocks(node, cluster) - beta;                
-                % calculate coefficients
-                b = X\Y;
-                % correct the local frequency of the node
-                % freq_loc(node,cluster) = freq_loc(node,cluster) / (1 + b(1));       
+                clocks(node, cluster) = clocks(node, cluster) - beta;
                 freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
                 data_freq(contador,:,:) = freq_loc;
             end
@@ -233,10 +217,11 @@ ylabel('Offset local [s]')
 
 figure(2)
 plot(data_freq(:,1,1)), title('frecuencia del nodo 1 del grado 1')
-xlabel('Frecuencia [Hz]')
+ylabel('Frecuencia [Hz]')
 
 
 %% Evaluación de parámetro b
+
 [a1,b1] = coef(X,Y+X)
 
 function [alpha,beta] = coef(t_recu, t_local)
@@ -249,6 +234,6 @@ function [alpha,beta] = coef(t_recu, t_local)
         error("Vectors must be the same length");
     end
     alpha = (N*sum(t_recu.*t_local)-sum(t_recu)*sum(t_local)) / (N*sum(t_recu.^2)-sum(t_recu)^2);
-    alpha = round(alpha,6);
-    beta = (sum(t_local)-sum(t_recu)) / N;
+    % alpha = round(alpha,6);
+    beta = mean(t_local)-alpha*mean(t_recu);
 end
