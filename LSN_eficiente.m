@@ -3,7 +3,7 @@ clear variables
 
 I = 7; % Numero de grados
 N = 35; % Numero de nodos por grado (5, 10, 15, 20)
-K = 10; % Numero de espacios en buffer por nodo
+K = 7; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
 sigma = 1e-3; % seg
@@ -47,7 +47,7 @@ pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
              sort(rand(1,N,I), 2)
                        ];
 
-L = 10; % Periodo de sincronizacion
+L = 11; % Periodo de sincronizacion
 
 offsets = zeros(N,I);
 data_offsets = [];
@@ -253,17 +253,17 @@ while tsim<Ttot
     freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
 
-    tiempoRx(cluster) = tiempoRx(cluster) + tau_msg_sync;
-    tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
+    % tiempoRx(cluster) = tiempoRx(cluster) + tau_msg_sync;
+    % tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
 
     for cluster = 1:I
         % Cluster Head Tx
-        tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
-
-        % Cluster Rx
-        tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
+        % tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
+        % tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
+        % 
+        % % Cluster Rx
+        % tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
+        % tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
 
         tiempoSp = tiempoSp + N*T;
         tsim = tsim + T;
@@ -281,8 +281,8 @@ while tsim<Ttot
         if cluster<I
 
             % Next Cluster Head Rx
-            tiempoRx(cluster+1) = tiempoRx(cluster+1) + tau_msg_sync;
-            tiempoSp(cluster+1) = tiempoSp(cluster+1) - tau_msg_sync;
+            % tiempoRx(cluster+1) = tiempoRx(cluster+1) + tau_msg_sync;
+            % tiempoSp(cluster+1) = tiempoSp(cluster+1) - tau_msg_sync;
 
             % Cluster head sync
             node = ref;
@@ -336,9 +336,13 @@ end % ended tsim
 table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
     'VariableNames',["S", "Rx", "Tx", "Suma"])
 % tsim*N
+P_rx = 59.9; % mW
+P_tx = 52.2; % mW
+P_sp = 0;    % mW
+% Potencia promedio consumida por nodo [mW]
+P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
 
-
-% Throughput de la red (pkts/s)
+%% Throughput de la red (pkts/s)
 th = numel(rx_sink)/tsim 
 
 rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
@@ -377,9 +381,8 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 % histogram(pkts(:,2));
 
 % Graficas de offset
-tiempo_ = linspace(0,tsim,contador);
 figure(3)
-plot(tiempo_, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 300])
+plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 300])
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
