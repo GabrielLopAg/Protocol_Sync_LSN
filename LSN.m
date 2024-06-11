@@ -25,10 +25,8 @@ tsim = 0; % medido en s
 contador = 0;
 
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e5; % Ciclos que dura la simulación
+Nc = 1e2; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
-
-t_byte = Tc; % seg
 
 p_rel = 0.8;
 p_loc = 1 - p_rel;
@@ -37,13 +35,13 @@ p_loc = 1 - p_rel;
 % freq_stability = 200e-6; % -100ppm to 100ppm
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
-freq_desv = 40e-6;
-max_offset = 4.32e-6; % maximum offset for initial synchronization
+freq_desv = 1e-6;
+max_offset = 0;% 4.32e-6; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
 mu = 0;
-std = 1e-6;
+std = 1e-4;
 
 max_xy = [150; 50];
 pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
@@ -51,6 +49,8 @@ pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
                        ];
 
 L = 11; % Periodo de sincronizacion
+
+t_byte = L*Tc; % seg
 
 offsets = zeros(N,I);
 data_offsets = [];
