@@ -230,6 +230,7 @@ while tsim<Ttot
     if tsim<8*Tc*L
         tiempoSp = tiempoSp + N*T*(xi+2-I);
         tsim = tsim + T*(xi+2-I);    
+        freq_loc = freq_loc + (randn(N,I) * std + mu);
         contador = contador + 1;
         clocks = tsim;
         data_clocks(contador,:,:) = clocks;
@@ -352,9 +353,9 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 % figure(2)
 % histogram(pkts(:,2));
 
-% Graficas de offset
+%% Graficas de offset
 figure(3)
-plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 300])
+plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), %xlim([0 300])
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
