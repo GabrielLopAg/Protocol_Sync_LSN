@@ -258,7 +258,7 @@ while tsim<Ttot
     % Y = squeeze(data_offsets(end-7:end, node, cluster));
     Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
     [alpha, beta] = coef(X, X+Y);
-    clocks(node, cluster) = clocks(node, cluster) - beta;
+    clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
     freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
 
@@ -309,7 +309,7 @@ while tsim<Ttot
             % Y = squeeze(data_offsets(end-7:end, node, cluster+1));
             Y = -(0:7)'*t_byte*freq_loc(node,cluster+1)/freq_nom + clocks(node,cluster+1) - X;
             [alpha, beta] = coef(X, X+Y);
-            clocks(node, cluster+1) = clocks(node, cluster+1) - beta;
+            clocks(node, cluster+1) = (clocks(node, cluster+1) - beta)/alpha;
             freq_loc(node,cluster+1) = freq_loc(node,cluster+1)/alpha;
             data_freq(contador,:,:) = freq_loc;
         end
@@ -322,7 +322,7 @@ while tsim<Ttot
                 % Y = squeeze(data_offsets(end-7:end, node, cluster));
                 Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
                 [alpha,beta] = coef(X, X+Y);
-                clocks(node, cluster) = clocks(node, cluster) - beta;
+                clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
                 freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
                 data_freq(contador,:,:) = freq_loc;
             end
