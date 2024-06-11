@@ -18,7 +18,7 @@ tau_sifs = 5e-3;
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en s
 
-tau_data_sync = 11e-3;
+tau_data_sync = 40e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
 
 tsim = 0; % medido en s
@@ -391,7 +391,7 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 % figure(2)
 % histogram(pkts(:,2));
 
-% Graficas de offset
+%% Graficas de offset
 figure(3)
 plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), xlim([0 300])
 
