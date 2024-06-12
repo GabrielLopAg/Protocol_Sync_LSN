@@ -25,7 +25,7 @@ tsim = 0; % medido en s
 contador = 0;
 
 Tc = T*(xi+2); % Tiempo de ciclo
-Nc = 1e2; % Ciclos que dura la simulación
+Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
 
 p_rel = 0.8;
@@ -227,7 +227,7 @@ while tsim<Ttot
 
     end % ended sync period
     
-    if tsim<8*Tc*L
+    if tsim<7*Tc*L
         tiempoSp = tiempoSp + N*T*(xi+2-I);
         tsim = tsim + T*(xi+2-I);    
         freq_loc = freq_loc + (randn(N,I) * std + mu);
