@@ -36,7 +36,7 @@ p_loc = 1 - p_rel;
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 1e-6;
-max_offset = 0;% 4.32e-6; % maximum offset for initial synchronization
+max_offset = 0; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
@@ -121,7 +121,7 @@ while tsim<Ttot
                 % No hay paquetes para transmitir en ese grado
                 
                 tsim = tsim + T;
-                freq_loc = freq_loc + (randn(N,I) * std + mu);
+                freq_loc = (T*randn(N, I) * std + 1 ) .* freq_loc;
                 clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
                 contador = contador + 1;
                 data_clocks(contador,:,:) = clocks;
@@ -199,7 +199,7 @@ while tsim<Ttot
     
             tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T; 
             tsim = tsim + T;
-            freq_loc = freq_loc + (randn(N,I) * std + mu);
+            freq_loc = (T*randn(N, I) * std + 1 ) .* freq_loc;
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
             data_clocks(contador,:,:) = clocks;
@@ -216,7 +216,7 @@ while tsim<Ttot
             tiempoSp = tiempoSp + N*T*(xi+2-I);
             tsim = tsim + T*(xi+2-I);    
             contador = contador + 1;
-            freq_loc = freq_loc + (randn(N,I) * std + mu);
+            freq_loc = ((T*(xi+2-I))*randn(N, I) * std + 1 ) .* freq_loc;
             clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);            
             data_clocks(contador,:,:) = clocks;
             offsets(:,:) = clocks - tsim;
@@ -229,8 +229,8 @@ while tsim<Ttot
     
     if tsim<7*Tc*L
         tiempoSp = tiempoSp + N*T*(xi+2-I);
-        tsim = tsim + T*(xi+2-I);    
-        freq_loc = freq_loc + (randn(N,I) * std + mu);
+        tsim = tsim + T*(xi+2-I);
+        freq_loc = ((T*(xi+2-I))*randn(N, I) * std + 1 ) .* freq_loc;
         contador = contador + 1;
         clocks = tsim;
         data_clocks(contador,:,:) = clocks;
@@ -243,7 +243,7 @@ while tsim<Ttot
 
     tsim = tsim + T;
     tiempoSp = tiempoSp + N*T;
-    freq_loc = freq_loc + (randn(N,I) * std + mu);
+    freq_loc =  (T*randn(N, I) * std + 1 ) .* freq_loc;
     clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
@@ -280,7 +280,7 @@ while tsim<Ttot
         end
         tiempoSp = tiempoSp + N*T;
         tsim = tsim + T;
-        freq_loc = freq_loc + (randn(N,I) * std + mu);
+        freq_loc =  (T*randn(N, I) * std + 1 ) .* freq_loc;
         clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
@@ -292,9 +292,8 @@ while tsim<Ttot
     end
 
     tiempoSp = tiempoSp + N*T*(xi+2-2*I-1);
-    tsim = tsim + T*(xi+2-2*I-1);   
-
-    freq_loc = freq_loc + (randn(N,I) * std + mu);
+    tsim = tsim + T*(xi+2-2*I-1);
+    freq_loc =  (T*(xi+2-2*I-1)*randn(N, I) * std + 1 ) .* freq_loc;
     clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + (T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
@@ -355,7 +354,8 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 
 %% Graficas de offset
 figure(3)
-plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), %xlim([0 300])
+plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), %xlim([300 450])
+xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
