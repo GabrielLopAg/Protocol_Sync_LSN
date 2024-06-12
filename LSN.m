@@ -1,13 +1,15 @@
 close all
 clear variables
 
-I = 7; % Numero de grados
-N = 35; % Numero de nodos por grado (5, 10, 15, 20)
-K = 7; % Numero de espacios en buffer por nodo
-xi = 18; % Numero de ranuras de sleeping
-lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
-sigma = 1e-3; % seg
+% Initialization Parameters
+I = 7; % Number of degrees
+N = 35; % Number of nodes per degree (5, 10, 15, 20)
+K = 7; % Number of buffer spaces per node
+xi = 18; % Number of sleeping slots
+lambda = 0.001875; % Packet generation rate (3e-4, 3e-3, 3e-2) pkts/s
+sigma = 1e-3; % seconds
 
+% Define time constants
 tau_difs = 10e-3;
 tau_rts = 11e-3;
 tau_cts = 11e-3;
@@ -21,59 +23,47 @@ T = tau_msg + sigma*N; % Duración de una ranura en s
 tau_data_sync = 11e-3;
 tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
 
-tsim = 0; % medido en s
+% Simulation Parameters
+tsim = 0; % measured in seconds
 contador = 0;
-
-Tc = T*(xi+2); % Tiempo de ciclo
+Tc = T * (xi + 2); % Tiempo de ciclo
 Nc = 1e3; % Ciclos que dura la simulación
-Ttot = Tc*Nc; % (ranuras) Tiempo total de la simulación
-
+Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
+L = 11; % Periodo de Sync
+ta = L * Tc;
+t_byte = L*Tc; % seg
+buf_rel = 1;
+buf_loc = 2;
 p_rel = 0.8;
 p_loc = 1 - p_rel;
+id = 0;
+lambda2 = lambda * N * I;
 
 % Node parameters
-% freq_stability = 200e-6; % -100ppm to 100ppm
-% freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 1e-6;
-max_offset = 0; % maximum offset for initial synchronization
 clocks = zeros(N, I);
-freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
-
+freq_loc = (randn(N, I) * freq_desv + 1) * freq_nom;
+max_offset = 0; % maximum offset for initial synchronization
 mu = 0;
-std = 1e-4;
+std = 1e-6;
+
+% Inicialización de variables
+Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
+offsets = zeros(N,I);
+rx_sink = [];
+pkts = [];
+data_offsets = [];
+time_offsets = [];
+data_clocks  = [];
+data_freq = [];
+buf_rel = 1;
+buf_loc = 2;
 
 max_xy = [150; 50];
 pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
              sort(rand(1,N,I), 2)
                        ];
-
-L = 11; % Periodo de sincronizacion
-
-t_byte = L*Tc; % seg
-
-offsets = zeros(N,I);
-data_offsets = [];
-time_offsets = [];
-data_clocks  = [];
-data_freq = [];
-
-Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
-buf_rel = 1;
-buf_loc = 2;
-
-% Grado(Grado>0.3) = 0;
-% Grado = Grado*10/3*Ttot;
-% Grado = sort(Grado,1);
-% 
-% npkt = numel(find(Grado));
-% Grado(Grado~=0) = randperm(npkt);
-
-id = 0;
-rx_sink = [];
-pkts = [];
-lambda2 = lambda*N*I;
-ta = Tc*L;
 
 % Parámetros de Evaluación
 perdidos = zeros(I,1);
