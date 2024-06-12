@@ -38,12 +38,12 @@ p_loc = 1 - p_rel;
 % freqNode = freqNominal + (rand(N, I) - 0.5) * freqStability * freqNominal;
 freq_nom = 7.3728e6; % 7.3728 MHz
 freq_desv = 40e-6;
-max_offset = 4.32e-6; % maximum offset for initial synchronization
+max_offset = 0; % maximum offset for initial synchronization
 clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1 ) * freq_nom; % validar el valor de 1e-4
 
-mu = 0;
-std = 1e-6;
+mu = 1;
+std = 1e-4;
 
 max_xy = [150; 50];
 pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
@@ -121,7 +121,7 @@ while tsim<Ttot
                 % No hay paquetes para transmitir en ese grado
                 
                 tsim = tsim + T;
-                freq_loc = freq_loc + (randn(N,I) * std + mu);
+                freq_loc = freq_loc * T.*(randn(N,I) * std + mu);
                 clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
                 contador = contador + 1;
                 data_clocks(contador,:,:) = clocks;
@@ -199,7 +199,7 @@ while tsim<Ttot
     
             tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T; 
             tsim = tsim + T;
-            freq_loc = freq_loc + (randn(N,I) * std + mu);
+            freq_loc = freq_loc * T.*(randn(N,I) * std + mu);
             clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
             contador = contador + 1;
             data_clocks(contador,:,:) = clocks;
@@ -216,7 +216,7 @@ while tsim<Ttot
             tiempoSp = tiempoSp + N*T*(xi+2-I);
             tsim = tsim + T*(xi+2-I);    
             contador = contador + 1;
-            freq_loc = freq_loc + (randn(N,I) * std + mu);
+            freq_loc = freq_loc * (T*(xi+2-I)).*(randn(N,I) * std + mu);
             clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
             data_clocks(contador,:,:) = clocks;
             offsets(:,:) = clocks - tsim;
@@ -229,7 +229,7 @@ while tsim<Ttot
     
     tsim = tsim + T;
     tiempoSp = tiempoSp + N*T;
-    freq_loc = freq_loc + (randn(N,I) * std + mu);
+    freq_loc = freq_loc * T.*(randn(N,I) * std + mu);
     clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
@@ -277,7 +277,7 @@ while tsim<Ttot
         tiempoSp = tiempoSp + N*T;
         tsim = tsim + T;
         
-        freq_loc = freq_loc + (randn(N,I) * std + mu);
+        freq_loc = freq_loc * T.*(randn(N,I) * std + mu);
         clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
         contador = contador + 1;
         offsets(:,:) = clocks - tsim;
@@ -332,7 +332,7 @@ while tsim<Ttot
     tiempoSp = tiempoSp + N*T*(xi+2-2*I-1);
     tsim = tsim + T*(xi+2-2*I-1);   
 
-    freq_loc = freq_loc + (randn(N,I) * std + mu);
+    freq_loc = freq_loc * (T*(xi+2-2*I-1)).*(randn(N,I) * std + mu);
     clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + (T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
