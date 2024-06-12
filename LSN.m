@@ -73,7 +73,7 @@ id = 0;
 rx_sink = [];
 pkts = [];
 lambda2 = lambda*N*I;
-ta = 0;
+ta = Tc*L;
 
 % Parámetros de Evaluación
 perdidos = zeros(I,1);
@@ -227,19 +227,19 @@ while tsim<Ttot
 
     end % ended sync period
     
-    if tsim<7*Tc*L
-        tiempoSp = tiempoSp + N*T*(xi+2-I);
-        tsim = tsim + T*(xi+2-I);
-        freq_loc = ((T*(xi+2-I))*randn(N, I) * std + 1 ) .* freq_loc;
-        contador = contador + 1;
-        clocks = tsim;
-        data_clocks(contador,:,:) = clocks;
-        offsets(:,:) = clocks - tsim;
-        data_offsets(contador,:,:) = offsets;
-        data_freq(contador,:,:) = freq_loc;
-        time_offsets(contador) = tsim;
-        continue
-    end
+    % if tsim<7*Tc*L
+    %     tiempoSp = tiempoSp + N*T*(xi+2-I);
+    %     tsim = tsim + T*(xi+2-I);    
+    %     freq_loc = freq_loc + (randn(N,I) * std + mu);
+    %     contador = contador + 1;
+    %     clocks = tsim;
+    %     data_clocks(contador,:,:) = clocks;
+    %     offsets(:,:) = clocks - tsim;
+    %     data_offsets(contador,:,:) = offsets;
+    %     data_freq(contador,:,:) = freq_loc;
+    %     time_offsets(contador) = tsim;
+    %     continue
+    % end
 
     tsim = tsim + T;
     tiempoSp = tiempoSp + N*T;

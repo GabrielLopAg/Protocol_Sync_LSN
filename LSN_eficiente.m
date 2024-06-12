@@ -73,7 +73,7 @@ id = 0;
 rx_sink = [];
 pkts = [];
 lambda2 = lambda*N*I;
-ta = 0;
+ta = L*Tc;
 
 % Parámetros de Evaluación
 perdidos = zeros(I,1);
