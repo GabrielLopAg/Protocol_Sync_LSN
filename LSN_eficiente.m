@@ -6,7 +6,7 @@ global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset o
 
 % Initialization Parameters
 I = 7; % Number of degrees
-N = 35; % Number of nodes per degree (5, 10, 15, 20)
+N = 20; % Number of nodes per degree (5, 10, 15, 20)
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
 lambda = 0.001875; % Packet generation rate (3e-4, 3e-3, 3e-2) pkts/s
@@ -31,9 +31,9 @@ tsim = 0; % medido en seconds
 contador = 0;
 tiempo = 0;
 Tc = T * (xi + 2); % Tiempo de ciclo
-Nc = 1e2; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
-L = 5; % Periodo de Sync
+L = 11; % Periodo de Sync
 ta = L * Tc;
 t_byte = Tc; % seg
 buf_rel = 1;
@@ -272,13 +272,9 @@ function syncProtocol()
     node = ref;
     cluster = 1;
 
-    X = -(0:7)' * t_byte + tsim % Tx 4.8KBps | t_byte = Tc
-    Y = -(0:7)' * t_byte * freq_loc(node, cluster)/freq_nom + clocks(node, cluster) - X
-    freq_loc(node, cluster)/freq_nom
-    clocks(node, cluster) - X
-    t_byte * freq_loc(node, cluster)/freq_nom
-    X+Y
-    [alpha, beta] = coef(X, X+Y)
+    X = -(0:7)' * t_byte + tsim; % Tx 4.8KBps | t_byte = Tc
+    Y = -(0:7)' * t_byte * freq_loc(node, cluster)/freq_nom + clocks(node, cluster) - X;
+    [alpha, beta] = coef(X, X+Y);
     clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
     freq_loc(node, cluster) = freq_loc(node, cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
