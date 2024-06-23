@@ -1,2 +1,16 @@
 .DS_Store
 *.asv
+
+Gabriel/
+*.png
+*.jpg
+*.mat
+*.fig
+
+coef.m
+hpmac.m
+markov.m
+offset_mean.m
+Propagation.m
+random_g.m
+test*.m

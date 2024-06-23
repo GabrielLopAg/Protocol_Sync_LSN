@@ -1,13 +1,8 @@
 close all
 clear variables
 
-<<<<<<< HEAD
-global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos pkts tsim rx_sink tau_msg_sync;
-global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets;
-=======
-global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos pkts tsim rx_sink;
+global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos th n_pkt retardos pkts tsim rx_sink ;
 global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync;
->>>>>>> 4d9d04efd7dde87d3c608864a642bcd097c46d40
 
 % Initialization Parameters
 I = 7; % Number of degrees
@@ -269,7 +264,7 @@ function updateSimulationTime(timeDuration)
 end
 
 function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
-    global tsim Grado N K buf_rel tiempo tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos pkts rx_sink;
+    global tsim Grado N K buf_rel tiempo tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos n_pkt retardos th pkts rx_sink;
 
     if i > 1
         pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
@@ -341,16 +336,10 @@ function syncProtocol()
         tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
         tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
 
-<<<<<<< HEAD
         % Cluster Rx
         tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
         tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
 
-=======
-        tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
-        
->>>>>>> 4d9d04efd7dde87d3c608864a642bcd097c46d40
         tiempoSp = tiempoSp + N*T;
         timeDuration = T;
         updateSimulationTime(timeDuration);
