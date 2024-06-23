@@ -2,11 +2,11 @@ close all
 clear variables
 
 global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos pkts tsim rx_sink;
-global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets;
+global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync;
 
 % Initialization Parameters
 I = 7; % Number of degrees
-N = 20; % Number of nodes per degree (5, 10, 15, 20)
+N = 35; % Number of nodes per degree (5, 10, 15, 20)
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
 lambda = 0.001875; % Packet generation rate (3e-4, 3e-3, 3e-2) pkts/s
@@ -30,10 +30,10 @@ tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
 tsim = 0; % medido en seconds
 contador = 0;
 tiempo = 0;
+Nc = 1e2; % Ciclos que dura la simulación
 Tc = T * (xi + 2); % Tiempo de ciclo
-Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
-L = 11; % Periodo de Sync
+L = 30; % Periodo de Sync
 ta = L * Tc;
 t_byte = Tc; % seg
 buf_rel = 1;
@@ -154,7 +154,41 @@ while tsim < Ttot
     tiempoSp = tiempoSp + N * T * (xi + 2 - 2 * I - 1);
     timeDuration = T * (xi + 2 - 2 * I - 1);
     updateSimulationTime(timeDuration);    
-end
+end % end tsim
+
+%%
+clear
+clc
+load("Tests/efic_N35_L11.mat")
+% %% L=5
+% r_std_4 = retardo;
+% p_std_4 = perd;
+% e_std_4 = P_prom;
+% %% L=11
+% r_std_5 = retardo;
+% p_std_5 = perd;
+% e_std_5 = P_prom;
+% %% L=20
+% r_std_6 = retardo;
+% p_std_6 = perd;
+% e_std_6 = P_prom;
+% %%
+% figure(1);
+% bar(1:7, [r_n_20; r_n_30; r_n_40])
+% title('Retardo promedio del paquete');
+% xlabel('Grado de origen');
+% ylabel('Retardo [seg]');
+% annotation('textbox',[.75 0.6 0.3 0.3], 'String', ...
+%    ["N = "+20; "N = "+30; "N = "+40], ...
+%    'FitBoxToText', 'on');
+% 
+% figure(2);
+% bar(1:7, [p_n_20; p_n_30; p_n_40])
+% title('Probabilidad de paquete perdido');
+% xlabel('Grado de origen');
+% annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
+%    ["N = "+20; "N = "+30; "N = "+40], ...
+%    'FitBoxToText', 'on');
 
 %% Parametro de evaluacion
 % Calculo de potencia
@@ -203,7 +237,7 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 
 %% Graficas de offset
 figure(3)
-plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1')
+plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos de un grado'), %xlim([0 300])
 xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
 
 %% Funciones 
@@ -265,7 +299,7 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
 end
 
 function syncProtocol()
-    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp;                            
+    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
        
     % Correción del primer nodo de referencia
     ref = randi(N);
@@ -281,6 +315,13 @@ function syncProtocol()
 
     % Propagación de la sync a toda la red
     for cluster = 1:I
+        % Cluster Head Tx
+        tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
+
+        tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+        
         tiempoSp = tiempoSp + N*T;
         timeDuration = T;
         updateSimulationTime(timeDuration);
@@ -309,7 +350,7 @@ function syncProtocol()
                 data_freq(contador,:,:) = freq_loc;
             end
         end % end intra-grado sync
-    end % end intre-grado sync
+    end % end inter-grado sync
 end
 
 function ta = arribo(ti, lambda)
@@ -348,7 +389,7 @@ function [alpha,beta] = coef(t_recu, t_local)
     if N~=length(t_local)
         error("Vectors must be the same length");
     end
-    alpha = (N*sum(t_recu.*t_local)-sum(t_recu)*sum(t_local)) / (N*sum(t_recu.^2)-sum(t_recu)^2);
+    alpha = (N * sum(t_recu.*t_local) - sum(t_recu) * sum(t_local)) / (N * sum(t_recu.^2) - sum(t_recu)^2);
     % alpha = round(alpha,6);
     beta = mean(t_local)-alpha*mean(t_recu);
 end
