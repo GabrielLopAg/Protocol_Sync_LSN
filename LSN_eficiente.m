@@ -326,9 +326,6 @@ function syncProtocol()
     clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
     freq_loc(node, cluster) = freq_loc(node, cluster)/alpha;  
     data_freq(contador,:,:) = freq_loc;
-    
-    tiempoRx(cluster) = tiempoRx(cluster) + tau_msg_sync;
-    tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
 
     % Propagación de la sync a toda la red
     for cluster = 1:I
