@@ -27,7 +27,7 @@ tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
 tsim = 0; % measured in seconds
 contador = 0;
 Tc = T * (xi + 2); % Tiempo de ciclo
-Nc = 1e3; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
 L = 11; % Periodo de Sync
 ta = L * Tc;
@@ -66,12 +66,18 @@ pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
                        ];
 
 % Parámetros de Evaluación
+th = zeros(I,1);
+n_pkt = zeros(I,1);
+retardos = zeros(I,1);
 perdidos = zeros(I,1);
 tiempoTx = zeros(I,1);
 tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
 
 while tsim<Ttot
+    tiempo = N*sigma + tau_difs + tau_rts;
+    tiempoSp(I) = tiempoSp(I) - N*tiempo;
+    tiempoRx(I) = tiempoRx(I) + N*tiempo;
     for sync = 1:L
         for i=I:-1:1
             while ta<=tsim % Generación de pkts locales
@@ -80,12 +86,14 @@ while tsim<Ttot
                 % rng("default");
                 n = [randi(N) randi(I)];
                 pos = getFreePosition(Grado(buf_loc, :, n(1), n(2)));                      
+            n_pkt(n(2)) = n_pkt(n(2)) + 1;
                 
-                pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
+                % pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 if pos==0
                     perdidos(n(2)) = perdidos(n(2)) + 1;
                 else
                     Grado(buf_loc, pos, n(1), n(2)) = id;                
+                pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 end
                 ta = arribo(ta, lambda2);
             end % ended generacion de pkts locales
@@ -107,7 +115,7 @@ while tsim<Ttot
             mTx = numel(tiene_pkt);
     
             % buscar si tiene paquetes en el búfer
-            if numel(tiene_pkt)==0
+        if mTx==0
                 % No hay paquetes para transmitir en ese grado
                 
                 tsim = tsim + T;
@@ -148,7 +156,9 @@ while tsim<Ttot
                 pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
     
                 if pos==0 % BUFFER RELAY LLENO
-                    perdidos(pkts(Grado(sel_buffer, K, ganador, i),2)) = perdidos(pkts(Grado(sel_buffer, K, ganador, i),2)) +1; % ?
+                aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
+                perdidos(aux) = perdidos(aux) +1; % ?
+                pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),:) = [];
                     tiempo = sigma*(j-1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
                     % Intenta transmitir, pero no hay Rx de CTS
                     % No aparece en las ecuaciones
@@ -164,25 +174,29 @@ while tsim<Ttot
                     tiempoSp([i-1 i]) = tiempoSp([i-1 i]) + T - tiempo;
                 end
                 tiempo = sigma*(j-1) + tau_difs;
-                tiempoTx(i) = tiempoTx(i) + mTx*tiempo;
-                tiempoSp(i) = tiempoSp(i) + (N-1)*T - mTx*tiempo;
+            tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
     
                 tiempo = tiempo + tau_rts;
-                tiempoRx(i-1) = tiempoRx(i-1) + mRx*tiempo;
-                tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - mRx*tiempo;
+            tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1)*tiempo;
+                tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - (mRx-1)*tiempo;
     
                 tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
             else % recepción en Sink
-                id_r = Grado(sel_buffer, K, ganador, 1);
-                rx_sink = [rx_sink id_r];
-                pkts(id_r,3) = tsim-pkts(id_r,3);
+            % id_r = Grado(sel_buffer, K, ganador, 1);
+            % rx_sink = [rx_sink id_r];
+            % pkts(id_r,3) = tsim-pkts(id_r,3);
+            aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),[2 3]);
+            th(aux(1)) = th(aux(1)) + 1;
+            retardos(aux(1)) = retardos(aux(1)) + tsim - aux(2);
+            pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1), :) = [];
     
                 tiempo = sigma*(j-1) + tau_msg;
                 tiempoTx(i) = tiempoTx(i) + tiempo;
                 tiempoSp(i) = tiempoSp(i) + T-tiempo;
                 tiempo = sigma*(j-1) + tau_difs;
-                tiempoTx(i) = tiempoTx(i) + mTx*tiempo;
-                tiempoSp(i) = tiempoSp(i) + (N-1)*T - mTx*tiempo;
+            tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
+            tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
             end
             Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
             % tx = tx+1;
@@ -304,18 +318,21 @@ P_sp = 0;    % mW
 % Potencia promedio consumida por nodo [mW]
 P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
 
-%% Throughput de la red (pkts/s)
-th = numel(rx_sink)/tsim 
 
-rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
+
+%% Throughput de la red
+n = th;
+th = sum(th)/tsim; % pkts/seg
+
 
 % Retardo por grado (seg)
-retardo = zeros(1,I);
-for i = 1:I
-    retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) );
-end
+% retardo = zeros(1,I);
+% for i = 1:I
+%     retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) ) / Tc;
+% end
+retardos = retardos./n;
 figure(1);
-bar(retardo);
+bar(retardos);
 title('Retardo promedio del paquete');
 xlabel('Grado de origen');
 ylabel('Retardo [seg]');
@@ -324,14 +341,14 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
    'FitBoxToText', 'on');
 
 % Paquetes perdidos (%)
-perd = zeros(1,I);
-p = zeros(1,I);
-for i = 1:I
-    p(i) = numel( pkts(pkts(:,2)==i,1) );
-    perd(i) = (p(i) - numel( rx_sink(rx_sink(:,2)==i,1) )) / p(i);
-end
+% perd = zeros(1,I);
+% for i = 1:I
+%     p = numel( pkts(pkts(:,2)==i,1) );
+%     perd(i) = (p - numel( rx_sink(rx_sink(:,2)==i,1) )) / p;
+% end
+perdidos = perdidos./n_pkt;
 figure(2);
-bar(perd)
+bar(perdidos)
 title('Probabilidad de paquete perdido');
 xlabel('Grado de origen');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
