@@ -3,6 +3,7 @@ close all
 
 I = 7; % Numero de grados
 % N = 35; % Numero de nodos por grado (5, 10, 15, 20)
+p = nextprime(N);
 K = 7; % Numero de espacios en buffer por nodo
 xi = 18; % Numero de ranuras de sleeping
 lambda = 0.001875; % Tasa de generacion de pkts (3e-4, 3e-3, 3e-2) pkts/s
@@ -76,9 +77,11 @@ tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
 
 while tsim<Ttot
+    tsim = tsim + T;
     tiempo = N*sigma + tau_difs + tau_rts;
     tiempoSp(I) = tiempoSp(I) - N*tiempo;
     tiempoRx(I) = tiempoRx(I) + N*tiempo;
+    tiempoSp = tiempoSp + N*T;
     for i=I:-1:1
         while ta<=tsim % Generación de pkts locales
             id = id + 1;
@@ -131,10 +134,11 @@ while tsim<Ttot
             continue
         end
 
-        hn = hash(N, tsim, T);        
+        hn = hash(N, p, tsim, T);        
         
         % backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
         ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
+        j = sum(hn>=hn(ganador));
                 
         if ~ismember(ganador,tiene_pkt_rel)
             sel_buffer = buf_loc;
@@ -147,8 +151,6 @@ while tsim<Ttot
         if i>1
             % disp("Tx " + tiene_pkt(ganador));
             pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
-
-            j = sum(hn>=ganador);
 
             if pos==0 % BUFFER RELAY LLENO
                 aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
@@ -172,7 +174,7 @@ while tsim<Ttot
             tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
             tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
 
-            tiempo = tiempo + tau_rts;
+            tiempo = sigma*N + tau_difs + tau_rts;% tiempo + tau_rts;
             tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1)*tiempo;
             tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - (mRx-1)*tiempo;
 
@@ -211,8 +213,8 @@ while tsim<Ttot
     % disp(['Timestamps at time ' num2str(tsim) ':']);
     % disp(relojes_nodos);
 
-    tiempoSp = tiempoSp + N*T*(xi+2-I);
-    tsim = tsim + T*(xi+2-I);    
+    tiempoSp = tiempoSp + N*T*(xi+1-I);
+    tsim = tsim + T*(xi+1-I);    
     clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);
     contador = contador + 1;
     offsets(:,:) = clocks - tsim;
@@ -221,8 +223,8 @@ end % ended tsim
 
 %% Parametro de evaluacion
 % Calculo de potencia
-table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
-    'VariableNames',["S", "Rx", "Tx", "Suma"])
+table(tiempoSp/tsim/N, tiempoRx/tsim/N, tiempoTx/tsim/N, (tiempoSp+tiempoRx+tiempoTx)/tsim/N, ...
+    'VariableNames',["S", "Rx", "Tx", "Suma"]);
 % tsim*N
 
 Prx = 59.9; % mW
@@ -283,14 +285,16 @@ function pos = getFreePosition(v)
     end
 end
 
-function hn = hash(N, tsim, T)    
+function hn = hash(N, p, tsim, T)  
     k = 0:N-1;
-    p = nextprime(N); % prime number p ≥ N
-    
+    % p = nextprime(N); % prime number p ≥ N
+
+    s = rng();
     rng(tsim/T)
     a_n = randi([1, p-1]); % PREGUNTAR a_n=0 genera el mismo ticket N veces
     b_n = randi([0, p-1]);
     
     aux = (a_n*k + b_n); 
     hn = mod(aux, p);
+    rng(s);
 end
