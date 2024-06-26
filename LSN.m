@@ -1,5 +1,8 @@
-close all
-clear variables
+% close all
+% clear variables
+
+global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos th n_pkt retardos pkts tsim rx_sink ;
+global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync;
 
 % Initialization Parameters
 I = 7; % Number of degrees
@@ -27,8 +30,9 @@ tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
 % Simulation Parameters
 tsim = 0; % measured in seconds
 contador = 0;
+tiempo = 0;
 Tc = T * (xi + 2); % Tiempo de ciclo
-Nc = 1e4; % Ciclos que dura la simulación
+Nc = 1e3; % Ciclos que dura la simulación
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
 L = 11; % Periodo de Sync
 ta = L * Tc;
@@ -83,25 +87,20 @@ while tsim<Ttot
         for i=I:-1:1
             while ta<=tsim % Generación de pkts locales
                 id = id + 1;
-                
                 % rng("default");
                 n = [randi(N) randi(I)];
                 pos = getFreePosition(Grado(buf_loc, :, n(1), n(2)));                      
-            n_pkt(n(2)) = n_pkt(n(2)) + 1;
+                n_pkt(n(2)) = n_pkt(n(2)) + 1;
                 
                 % pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 if pos==0
                     perdidos(n(2)) = perdidos(n(2)) + 1;
                 else
                     Grado(buf_loc, pos, n(1), n(2)) = id;                
-                pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
+                    pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 end
                 ta = arribo(ta, lambda2);
-            end % ended generacion de pkts locales
-            
-            %         disp(i)
-            %         aux = Grado(:,:,i);
-            %         disp(aux)
+            end % ended generacion de pkts locales          
             
             % Proceso de contención
             tiene_pkt_loc = find(Grado(buf_loc,K,:,i)); % Nodos que tienen pkt en buffer local
@@ -116,18 +115,11 @@ while tsim<Ttot
             mTx = numel(tiene_pkt);
     
             % buscar si tiene paquetes en el búfer
-        if mTx==0
+            if mTx==0
                 % No hay paquetes para transmitir en ese grado
-                
-                tsim = tsim + T;
-                freq_loc = (T*randn(N, I) * std + 1 ) .* freq_loc;
-                clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
-                contador = contador + 1;
-                data_clocks(contador,:,:) = clocks;
-                offsets(:,:) = clocks - tsim;
-                data_offsets(contador,:,:) = offsets;
-                data_freq(contador,:,:) = freq_loc;
-                time_offsets(contador) = tsim;
+
+                timeDuration = T;
+                updateSimulationTime(timeDuration);               
 
                 tiempo = tau_difs + sigma*N + tau_rts + tau_sifs;
                 tiempoSp = tiempoSp + N*T;
@@ -152,82 +144,19 @@ while tsim<Ttot
                 sel_buffer = randsrc(1, 1, [buf_loc buf_rel; p_loc p_rel]); 
             end
             
-            if i>1
-                % disp("Tx " + tiene_pkt(ganador));
-                pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
-    
-                if pos==0 % BUFFER RELAY LLENO
-                aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
-                perdidos(aux) = perdidos(aux) +1; % ?
-                pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),:) = [];
-                    tiempo = sigma*(j-1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
-                    % Intenta transmitir, pero no hay Rx de CTS
-                    % No aparece en las ecuaciones
-                    tiempoTx(i) = tiempoTx(i) + tiempo; 
-                    tiempoSp(i) = tiempoSp(i) + T - tiempo;
-    
-                    tiempoSp(i-1) = tiempoSp(i-1) + T;
-                else
-                    Grado(buf_rel, pos, ganador, i-1) = Grado(sel_buffer, K, ganador, i);
-                    tiempo = sigma*(j-1) + tau_msg;
-                    tiempoTx(i)   = tiempoTx(i)   + tiempo;
-                    tiempoRx(i-1) = tiempoRx(i-1) + tiempo;
-                    tiempoSp([i-1 i]) = tiempoSp([i-1 i]) + T - tiempo;
-                end
-                tiempo = sigma*(j-1) + tau_difs;
-            tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
-            tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
-    
-                tiempo = N*sigma + tau_difs + tau_rts;
-            tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1)*tiempo;
-                tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - (mRx-1)*tiempo;
-    
-                tiempoSp(1:7<i-1) = tiempoSp(1:7<i-1) + N*T;
-            else % recepción en Sink
-            % id_r = Grado(sel_buffer, K, ganador, 1);
-            % rx_sink = [rx_sink id_r];
-            % pkts(id_r,3) = tsim-pkts(id_r,3);
-            aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),[2 3]);
-            th(aux(1)) = th(aux(1)) + 1;
-            retardos(aux(1)) = retardos(aux(1)) + tsim - aux(2);
-            pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1), :) = [];
-    
-                tiempo = sigma*(j-1) + tau_msg;
-                tiempoTx(i) = tiempoTx(i) + tiempo;
-                tiempoSp(i) = tiempoSp(i) + T-tiempo;
-                tiempo = sigma*(j-1) + tau_difs;
-            tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
-            tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
-            end
-            Grado(sel_buffer, :, ganador, i) = [0 Grado(sel_buffer, 1:K-1, ganador, i)];
-            % tx = tx+1;
-    
-            tiempoSp(1:7>i) = tiempoSp(1:7>i) + N*T; 
-            tsim = tsim + T;
-            freq_loc = (T*randn(N, I) * std + 1 ) .* freq_loc;
-            clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
-            contador = contador + 1;
-            data_clocks(contador,:,:) = clocks;
-            offsets(:,:) = clocks - tsim;
-            data_offsets(contador,:,:) = offsets;
-            data_freq(contador,:,:) = freq_loc;
-            time_offsets(contador) = tsim;
-            % offsets = offsets + T*freqNode./freqNominal + max_offset*(rand(N,I) - 0.5)
+            % Proceso de transmisión
+            processTransmission(ganador, sel_buffer, i, j, mRx, mTx);
+            tiempoSp(1:7>i) = tiempoSp(1:7>i) + N * T; 
+            timeDuration = T;
+            updateSimulationTime(timeDuration);
             
         end % ended barrido
-
     
         if sync ~= L
-            tiempoSp = tiempoSp + N*T*(xi+2-I);
-            tsim = tsim + T*(xi+2-I);    
-            contador = contador + 1;
-            freq_loc = ((T*(xi+2-I))*randn(N, I) * std + 1 ) .* freq_loc;
-            clocks = clocks + (T*(xi+2-I))*freq_loc/freq_nom + (T*(xi+2-I))*max_offset*(rand(N,I)-0.5);            
-            data_clocks(contador,:,:) = clocks;
-            offsets(:,:) = clocks - tsim;
-            data_offsets(contador,:,:) = offsets;
-            data_freq(contador,:,:) = freq_loc;
-            time_offsets(contador) = tsim;
+            % Sleeping time
+            tiempoSp = tiempoSp + N * T * (xi + 2 - I);
+            timeDuration = T * (xi + 2 - I);
+            updateSimulationTime(timeDuration);
         end
 
     end % ended sync period
@@ -245,67 +174,17 @@ while tsim<Ttot
     %     time_offsets(contador) = tsim;
     %     continue
     % end
-
-    tsim = tsim + T;
+    
     tiempoSp = tiempoSp + N*T;
-    freq_loc =  (T*randn(N, I) * std + 1 ) .* freq_loc;
-    clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
-    contador = contador + 1;
-    offsets(:,:) = clocks - tsim;
-    data_offsets(contador,:,:) = offsets;
-    data_clocks(contador,:,:) = clocks;    
-    data_freq(contador,:,:) = freq_loc;
-    time_offsets(contador) = tsim;
+    timeDuration = T;
+    updateSimulationTime(timeDuration);
 
-    X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
-
-
-    for cluster = 1:I
-        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
-
-        % Cluster Rx
-        tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
-
-        for node = 1:N
-            ref = randi(N);
-            if cluster>1
-                X = -(0:7)'*t_byte*freq_loc(ref,cluster-1)/freq_nom + clocks(ref,cluster-1);
-            end
-            % Offset correction
-            offset = clocks(node, cluster) - clocks(ref, cluster);
-            % Drift correction using linear regression               
-            % Y = squeeze(data_offsets(end-7:end, node, cluster));
-            Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
-            [alpha,beta] = coef(X, X+Y);
-            clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
-            freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
-            data_freq(contador,:,:) = freq_loc;
-        end
-        tiempoSp = tiempoSp + N*T;
-        tsim = tsim + T;
-        freq_loc =  (T*randn(N, I) * std + 1 ) .* freq_loc;
-        clocks = clocks + T*freq_loc/freq_nom + T*max_offset*(rand(N,I)-0.5);
-        contador = contador + 1;
-        offsets(:,:) = clocks - tsim;
-        data_offsets(contador,:,:) = offsets;
-        data_clocks(contador,:,:) = clocks;    
-        data_freq(contador,:,:) = freq_loc; 
-        time_offsets(contador) = tsim;        
-        
-    end
+    % Synchronization
+    syncProtocol();    
 
     tiempoSp = tiempoSp + N*T*(xi+2-2*I-1);
-    tsim = tsim + T*(xi+2-2*I-1);
-    freq_loc =  (T*(xi+2-2*I-1)*randn(N, I) * std + 1 ) .* freq_loc;
-    clocks = clocks + (T*(xi+2-2*I-1))*freq_loc/freq_nom + (T*(xi+2-2*I-1))*max_offset*(rand(N,I)-0.5);
-    contador = contador + 1;
-    offsets(:,:) = clocks - tsim;
-    data_offsets(contador,:,:) = offsets;
-    data_clocks(contador,:,:) = clocks;
-    data_freq(contador,:,:) = freq_loc;
-    time_offsets(contador) = tsim;
+    timeDuration = T * (xi + 2 - 2 * I - 1);
+    updateSimulationTime(timeDuration); 
 end % ended tsim
 
 %% Parametro de evaluacion
@@ -318,13 +197,9 @@ P_tx = 52.2; % mW
 P_sp = 0;    % mW
 % Potencia promedio consumida por nodo [mW]
 Ptot = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
-
-
-
 %% Throughput de la red
 n = th;
 th = sum(th)/tsim; % pkts/seg
-
 
 % Retardo por grado (seg)
 % retardo = zeros(1,I);
@@ -364,6 +239,102 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 figure(3)
 plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos del grado 1'), %xlim([300 450])
 xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
+
+%% Funciones 
+function updateSimulationTime(timeDuration)
+    global tsim N I std freq_loc freq_nom clocks max_offset contador data_clocks offsets data_offsets data_freq time_offsets;    
+
+    tsim = tsim + timeDuration;
+    contador = contador + 1;
+    freq_loc = (timeDuration * randn(N, I) * std + 1) .* freq_loc;
+    clocks = clocks + timeDuration * freq_loc / freq_nom + timeDuration * max_offset * (rand(N, I) - 0.5);
+    offsets(:,:) = clocks - tsim;
+    data_clocks(contador, :, :) = clocks;
+    data_offsets(contador, :, :) = offsets;    
+    data_freq(contador, :, :) = freq_loc;
+    time_offsets(contador) = tsim;
+end
+
+function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
+    global tsim Grado N K buf_rel tiempo tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos retardos th pkts rx_sink;
+
+    if i > 1
+        pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
+        if pos == 0 % BUFFER RELAY LLENO
+            aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
+            perdidos(aux) = perdidos(aux) +1; % ?
+            pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),:) = [];
+            tiempo = sigma * (j - 1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
+            % Intenta transmitir, pero no hay Rx de CTS
+            % No aparece en las ecuaciones
+            tiempoTx(i) = tiempoTx(i) + tiempo;
+            tiempoSp(i) = tiempoSp(i) + T - tiempo;
+            tiempoSp(i-1) = tiempoSp(i-1) + T;
+        else
+            Grado(buf_rel, pos, ganador, i-1) = Grado(sel_buffer, K, ganador, i);
+            tiempo = sigma * (j - 1) + tau_msg;
+            tiempoTx(i) = tiempoTx(i) + tiempo;
+            tiempoRx(i-1) = tiempoRx(i-1) + tiempo;
+            tiempoSp([i-1, i]) = tiempoSp([i-1, i]) + T - tiempo;
+        end
+        tiempo = sigma * (j - 1) + tau_difs;
+        tiempoTx(i) = tiempoTx(i) + (mTx-1) * tiempo;
+        tiempoSp(i) = tiempoSp(i) + (N - 1) * T - (mTx-1) * tiempo;
+
+        tiempo = N*sigma + tau_difs + tau_rts;
+        tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1) * tiempo;
+        tiempoSp(i-1) = tiempoSp(i-1) + (N - 1) * T - (mRx-1) * tiempo;
+        tiempoSp(1:7 < i-1) = tiempoSp(1:7 < i-1) + N * T;
+    else % recepción en Sink
+        % id_r = Grado(sel_buffer, K, ganador, 1);
+        % rx_sink = [rx_sink, id_r];        
+        % pkts(id_r, 3) = tsim - pkts(id_r, 3);
+        aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),[2 3]);
+        th(aux(1)) = th(aux(1)) + 1;
+        retardos(aux(1)) = retardos(aux(1)) + tsim - aux(2);
+        pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1), :) = [];
+
+        tiempo = sigma * (j - 1) + tau_msg;
+        tiempoTx(i) = tiempoTx(i) + tiempo;
+        tiempoSp(i) = tiempoSp(i) + T - tiempo;
+        tiempo = sigma * (j - 1) + tau_difs;
+        tiempoTx(i) = tiempoTx(i) + (mTx-1) * tiempo;
+        tiempoSp(i) = tiempoSp(i) + (N - 1) * T - (mTx-1) * tiempo;
+    end
+    Grado(sel_buffer, :, ganador, i) = [0, Grado(sel_buffer, 1:K-1, ganador, i)];
+end
+
+function syncProtocol()
+    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
+    
+    X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
+
+    for cluster = 1:I
+        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+
+        % Cluster Rx
+        tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+
+        for node = 1:N
+            ref = randi(N);
+            if cluster>1
+                X = -(0:7)'*t_byte*freq_loc(ref,cluster-1)/freq_nom + clocks(ref,cluster-1);
+            end
+            % Offset correction
+            % offset = clocks(node, cluster) - clocks(ref, cluster);
+            Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+            [alpha,beta] = coef(X, X+Y);
+            clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
+            freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
+            data_freq(contador,:,:) = freq_loc;
+        end
+        tiempoSp = tiempoSp + N*T;
+        timeDuration = T;
+        updateSimulationTime(timeDuration);                     
+    end    
+end
 
 function ta = arribo(ti, lambda)
     u = (1e6*rand)/1e6;
