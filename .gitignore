@@ -9,7 +9,7 @@ Gabriel/
 
 coef.m
 hpmac.m
-markov.m
+hash.m
 offset_mean.m
 Propagation.m
 random_g.m
