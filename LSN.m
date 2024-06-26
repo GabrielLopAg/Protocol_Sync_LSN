@@ -4,6 +4,7 @@ clear variables
 % Initialization Parameters
 I = 7; % Number of degrees
 N = 35; % Number of nodes per degree (5, 10, 15, 20)
+p = nextprime(N);
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
 lambda = 0.001875; % Packet generation rate (3e-4, 3e-3, 3e-2) pkts/s
@@ -57,8 +58,6 @@ data_offsets = [];
 time_offsets = [];
 data_clocks  = [];
 data_freq = [];
-buf_rel = 1;
-buf_loc = 2;
 
 max_xy = [150; 50];
 pos_xy = max_xy.*[rand(1,N,I) + reshape(0:I-1,[1,1,I]);
@@ -75,9 +74,11 @@ tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
 
 while tsim<Ttot
+    % tsim = tsim + T;
     tiempo = N*sigma + tau_difs + tau_rts;
     tiempoSp(I) = tiempoSp(I) - N*tiempo;
     tiempoRx(I) = tiempoRx(I) + N*tiempo;
+    % tiempoSp = tiempoSp + N*T;
     for sync = 1:L
         for i=I:-1:1
             while ta<=tsim % Generación de pkts locales
@@ -137,11 +138,11 @@ while tsim<Ttot
                 continue
             end
     
-            hn = hash(N, tsim, T);        
+            hn = hash(p, N, tsim, T);        
             
             % backoff = randi(W, size(tiene_pkt)) % Condicionado a size(tiene_pkt)
             ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
-            j = sum(hn>=ganador);
+            j = sum(hn>=hn(ganador));
                     
             if ~ismember(ganador,tiene_pkt_rel)
                 sel_buffer = buf_loc;
@@ -177,7 +178,7 @@ while tsim<Ttot
             tiempoTx(i) = tiempoTx(i) + (mTx-1)*tiempo;
             tiempoSp(i) = tiempoSp(i) + (N-1)*T - (mTx-1)*tiempo;
     
-                tiempo = tiempo + tau_rts;
+                tiempo = N*sigma + tau_difs + tau_rts;
             tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1)*tiempo;
                 tiempoSp(i-1) = tiempoSp(i-1) + (N-1)*T - (mRx-1)*tiempo;
     
@@ -316,7 +317,7 @@ P_rx = 59.9; % mW
 P_tx = 52.2; % mW
 P_sp = 0;    % mW
 % Potencia promedio consumida por nodo [mW]
-P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
+Ptot = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
 
 
 
@@ -377,9 +378,9 @@ function pos = getFreePosition(v)
     end
 end
 
-function hn = hash(N, tsim, T)    
+function hn = hash(p, N, tsim, T)    
     k = 0:N-1;
-    p = nextprime(N); % prime number p ≥ N
+    % p = nextprime(N); % prime number p ≥ N
     
     s = rng();
     rng(tsim/T)

@@ -7,6 +7,7 @@ global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset o
 % Initialization Parameters
 I = 7; % Number of degrees
 N = 35; % Number of nodes per degree (5, 10, 15, 20)
+p = nextprime(N);
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
 lambda = 0.001875; % Packet generation rate (3e-4, 3e-3, 3e-2) pkts/s
@@ -125,9 +126,9 @@ while tsim < Ttot
                 continue;
             end
             
-            hn = hash(N, tsim, T); 
+            hn = hash(p, N, tsim, T); 
             ganador = find(hn==max(hn(tiene_pkt))); % Indice de tiene_pkt
-            j = sum(hn>=ganador);
+            j = sum(hn>=hn(ganador));
 
             if ~ismember(ganador, tiene_pkt_rel)
                 sel_buffer = buf_loc;
@@ -264,7 +265,7 @@ function updateSimulationTime(timeDuration)
 end
 
 function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
-    global tsim Grado N K buf_rel tiempo tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos n_pkt retardos th pkts rx_sink;
+    global tsim Grado N K buf_rel tiempo tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos retardos th pkts rx_sink;
 
     if i > 1
         pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
@@ -289,7 +290,7 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
         tiempoTx(i) = tiempoTx(i) + (mTx-1) * tiempo;
         tiempoSp(i) = tiempoSp(i) + (N - 1) * T - (mTx-1) * tiempo;
 
-        tiempo = tiempo + tau_rts;
+        tiempo = N*sigma + tau_difs + tau_rts;
         tiempoRx(i-1) = tiempoRx(i-1) + (mRx-1) * tiempo;
         tiempoSp(i-1) = tiempoSp(i-1) + (N - 1) * T - (mRx-1) * tiempo;
         tiempoSp(1:7 < i-1) = tiempoSp(1:7 < i-1) + N * T;
@@ -381,9 +382,9 @@ function pos = getFreePosition(v)
     end
 end
 
-function hn = hash(N, tsim, T)    
+function hn = hash(p, N, tsim, T)    
     k = 0:N-1;
-    p = nextprime(N); % prime number p ≥ N
+    % p = nextprime(N); % prime number p ≥ N
     
     s = rng();
     rng(tsim/T)
