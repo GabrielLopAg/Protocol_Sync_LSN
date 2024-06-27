@@ -89,14 +89,14 @@ while tsim < Ttot
                 id = id + 1;
                 n = [randi(N), randi(I)];
                 pos = getFreePosition(Grado(buf_loc, :, n(1), n(2)));
-            n_pkt(n(2)) = n_pkt(n(2)) + 1;
+                n_pkt(n(2)) = n_pkt(n(2)) + 1;
 
                 % pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 if pos == 0
                     perdidos(n(2)) = perdidos(n(2)) + 1;
                 else
                     Grado(buf_loc, pos, n(1), n(2)) = id;
-                pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
+                    pkts = [pkts; id n(2) ta]; % id, grado de generación, tiempo de generación
                 end
                 ta = arribo(ta, lambda2);
             end
@@ -165,40 +165,6 @@ while tsim < Ttot
     updateSimulationTime(timeDuration);    
 end % end tsim
 
-%%
-clear
-clc
-load("Tests/efic_N35_L11.mat")
-% %% L=5
-% r_std_4 = retardo;
-% p_std_4 = perd;
-% e_std_4 = P_prom;
-% %% L=11
-% r_std_5 = retardo;
-% p_std_5 = perd;
-% e_std_5 = P_prom;
-% %% L=20
-% r_std_6 = retardo;
-% p_std_6 = perd;
-% e_std_6 = P_prom;
-% %%
-% figure(1);
-% bar(1:7, [r_n_20; r_n_30; r_n_40])
-% title('Retardo promedio del paquete');
-% xlabel('Grado de origen');
-% ylabel('Retardo [seg]');
-% annotation('textbox',[.75 0.6 0.3 0.3], 'String', ...
-%    ["N = "+20; "N = "+30; "N = "+40], ...
-%    'FitBoxToText', 'on');
-% 
-% figure(2);
-% bar(1:7, [p_n_20; p_n_30; p_n_40])
-% title('Probabilidad de paquete perdido');
-% xlabel('Grado de origen');
-% annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-%    ["N = "+20; "N = "+30; "N = "+40], ...
-%    'FitBoxToText', 'on');
-
 %% Parametro de evaluacion
 % Calculo de potencia
 table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
@@ -213,7 +179,6 @@ P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim
 %% Throughput de la red (pkts/s)
 n = th;
 th = sum(th)/tsim; % pkts/seg
-
 
 % Retardo por grado
 % retardo = zeros(1,I);
@@ -275,9 +240,9 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
     if i > 1
         pos = getFreePosition(Grado(buf_rel, :, ganador, i-1)); % Last free position
         if pos == 0 % BUFFER RELAY LLENO
-                aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
-                perdidos(aux) = perdidos(aux) +1; % ?
-                pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),:) = [];
+            aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),2);
+            perdidos(aux) = perdidos(aux) +1; % ?
+            pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),:) = [];
             tiempo = sigma * (j - 1) + tau_difs + tau_rts; % Preguntar sobre tau_rts
             % Intenta transmitir, pero no hay Rx de CTS
             % No aparece en las ecuaciones
@@ -303,10 +268,10 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
         % id_r = Grado(sel_buffer, K, ganador, 1);
         % rx_sink = [rx_sink, id_r];        
         % pkts(id_r, 3) = tsim - pkts(id_r, 3);
-            aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),[2 3]);
-            th(aux(1)) = th(aux(1)) + 1;
-            retardos(aux(1)) = retardos(aux(1)) + tsim - aux(2);
-            pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1), :) = [];
+        aux = pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1),[2 3]);
+        th(aux(1)) = th(aux(1)) + 1;
+        retardos(aux(1)) = retardos(aux(1)) + tsim - aux(2);
+        pkts(Grado(sel_buffer, K, ganador, i)==pkts(:,1), :) = [];
 
         tiempo = sigma * (j - 1) + tau_msg;
         tiempoTx(i) = tiempoTx(i) + tiempo;
