@@ -211,38 +211,43 @@ P_sp = 0;    % mW
 P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
 
 %% Throughput de la red (pkts/s)
-th = numel(rx_sink)/tsim 
+n = th;
+th = sum(th)/tsim; % pkts/seg
 
-rx_sink = pkts(ismember(pkts(:,1),rx_sink),:);
 
-% Retardo por grado (seg)
-retardo = zeros(1,I);
-for i = 1:I
-    retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) );
-end
+% Retardo por grado
+% retardo = zeros(1,I);
+% for i = 1:I
+%     retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) ) / Tc;
+% end
+retardos = retardos./n;
 figure(1);
-bar(retardo);
+bar(retardos);
 title('Retardo promedio del paquete');
 xlabel('Grado de origen');
-ylabel('Retardo [seg]');
+ylabel('Retardo [s]');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
    ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
 
-% Paquetes perdidos (%)
-perd = zeros(1,I);
-p = zeros(1,I);
-for i = 1:I
-    p(i) = numel( pkts(pkts(:,2)==i,1) );
-    perd(i) = (p(i) - numel( rx_sink(rx_sink(:,2)==i,1) )) / p(i);
-end
+% Paquetes perdidos
+% perd = zeros(1,I);
+% for i = 1:I
+%     p = numel( pkts(pkts(:,2)==i,1) );
+%     perd(i) = (p - numel( rx_sink(rx_sink(:,2)==i,1) )) / p;
+% end
+perdidos = perdidos./n_pkt;
 figure(2);
-bar(perd)
+bar(perdidos)
 title('Probabilidad de paquete perdido');
 xlabel('Grado de origen');
 annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
    ["\lambda = "+lambda; "N = "+N], ...
    'FitBoxToText', 'on');
+
+% histogram(pkts(ismember(pkts(:,1),rx_sink),2));
+% figure(2)
+% histogram(pkts(:,2));
 
 %% Graficas de offset
 figure(3)
