@@ -158,7 +158,8 @@ while tsim < Ttot
     updateSimulationTime(timeDuration);
 
     % Synchronization
-    syncProtocol();
+    % syncProtocolEfic();
+    syncProtocolFTSP();
 
     tiempoSp = tiempoSp + N * T * (xi + 2 - 2 * I - 1);
     timeDuration = T * (xi + 2 - 2 * I - 1);
@@ -283,7 +284,7 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
     Grado(sel_buffer, :, ganador, i) = [0, Grado(sel_buffer, 1:K-1, ganador, i)];
 end
 
-function syncProtocol()
+function syncProtocolEfic()
     global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
        
     % Correción del primer nodo de referencia
@@ -337,6 +338,38 @@ function syncProtocol()
             end
         end % end intra-grado sync
     end % end inter-grado sync
+end
+
+function syncProtocolFTSP()
+    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
+    
+    X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
+
+    for cluster = 1:I
+        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+
+        % Cluster Rx
+        tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+
+        for node = 1:N
+            ref = randi(N);
+            if cluster>1
+                X = -(0:7)'*t_byte*freq_loc(ref,cluster-1)/freq_nom + clocks(ref,cluster-1);
+            end
+            % Offset correction
+            % offset = clocks(node, cluster) - clocks(ref, cluster);
+            Y = -(0:7)'*t_byte*freq_loc(node,cluster)/freq_nom + clocks(node,cluster) - X;
+            [alpha,beta] = coef(X, X+Y);
+            clocks(node, cluster) = (clocks(node, cluster) - beta)/alpha;
+            freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
+            data_freq(contador,:,:) = freq_loc;
+        end
+        tiempoSp = tiempoSp + N*T;
+        timeDuration = T;
+        updateSimulationTime(timeDuration);                     
+    end    
 end
 
 function ta = arribo(ti, lambda)
