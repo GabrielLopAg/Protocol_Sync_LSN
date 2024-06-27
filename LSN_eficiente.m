@@ -36,7 +36,7 @@ Tc = T * (xi + 2); % Tiempo de ciclo
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
 L = 20; % Periodo de Sync
 ta = L * Tc;
-t_byte = Tc; % seg
+% t_byte = Tc; % seg
 buf_rel = 1;
 buf_loc = 2;
 p_rel = 0.8;
@@ -285,13 +285,14 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
 end
 
 function syncProtocolEfic()
-    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
+    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;     
+    t_byte = Tc;
        
     % Correción del primer nodo de referencia
     ref = randi(N);
     node = ref;
     cluster = 1;
-
+    
     X = -(0:7)' * t_byte + tsim; % Tx 4.8KBps | t_byte = Tc
     Y = -(0:7)' * t_byte * freq_loc(node, cluster)/freq_nom + clocks(node, cluster) - X;
     [alpha, beta] = coef(X, X+Y);
@@ -341,7 +342,8 @@ function syncProtocolEfic()
 end
 
 function syncProtocolFTSP()
-    global tsim T N I t_byte freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;                            
+    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;  
+    t_byte = L*Tc;
     
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
