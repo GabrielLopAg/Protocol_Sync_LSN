@@ -121,7 +121,7 @@ while tsim<Ttot
                 timeDuration = T;
                 updateSimulationTime(timeDuration);               
 
-                tiempo = tau_difs + sigma*N + tau_rts + tau_sifs;
+                tiempo = tau_difs + sigma*N + tau_rts;
                 tiempoSp = tiempoSp + N*T;
                 if i>1
                     tiempoSp(i-1) = tiempoSp(i-1) - mRx*tiempo;
@@ -310,8 +310,6 @@ function syncProtocol()
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
     for cluster = 1:I
-        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
 
         % Cluster Rx
         tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
@@ -330,6 +328,10 @@ function syncProtocol()
             freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
             data_freq(contador,:,:) = freq_loc;
         end
+
+        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+        
         tiempoSp = tiempoSp + N*T;
         timeDuration = T;
         updateSimulationTime(timeDuration);                     

@@ -335,17 +335,9 @@ function syncProtocol()
 
     % Propagación de la sync a toda la red
     for cluster = 1:I
-        % Cluster Head Tx
-        tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
+        % Cluster Head Rx
+        tiempoRx(cluster) = tiempoRx(cluster) + tau_msg_sync;
         tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
-
-        % Cluster Rx
-        tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
-
-        tiempoSp = tiempoSp + N*T;
-        timeDuration = T;
-        updateSimulationTime(timeDuration);
 
         X = -(0:7)' * t_byte * freq_loc(ref, cluster)/freq_nom + clocks(ref, cluster);
         
@@ -371,6 +363,18 @@ function syncProtocol()
                 data_freq(contador,:,:) = freq_loc;
             end
         end % end intra-grado sync
+
+        % Cluster Head Tx
+        tiempoTx(cluster) = tiempoTx(cluster) + tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - tau_msg_sync;
+
+        % Cluster Rx
+        tiempoRx(cluster) = tiempoRx(cluster) + (N-1)*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - (N-1)*tau_msg_sync;
+
+        tiempoSp = tiempoSp + N*T;
+        timeDuration = T;
+        updateSimulationTime(timeDuration);
     end % end inter-grado sync
 end
 
