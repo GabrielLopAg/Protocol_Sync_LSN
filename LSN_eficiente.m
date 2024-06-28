@@ -1,8 +1,8 @@
 close all
 clear variables
 
-global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos th n_pkt retardos pkts tsim rx_sink ;
-global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync;
+global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T Tc perdidos th n_pkt retardos pkts tsim rx_sink ;
+global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync L;
 
 % Initialization Parameters
 I = 7; % Number of degrees
@@ -287,7 +287,7 @@ end
 function syncProtocolEfic()
     global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;     
     t_byte = Tc;
-       
+    
     % Correción del primer nodo de referencia
     ref = randi(N);
     node = ref;
@@ -346,14 +346,12 @@ function syncProtocolEfic()
 end
 
 function syncProtocolFTSP()
-    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;  
-    t_byte = L*Tc;
+    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync L Tc;  
+    t_byte = L*Tc;                          
     
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
     for cluster = 1:I
-        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
-        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
 
         % Cluster Rx
         tiempoRx(cluster) = tiempoRx(cluster) + N*tau_msg_sync;
@@ -372,6 +370,10 @@ function syncProtocolFTSP()
             freq_loc(node,cluster) = freq_loc(node,cluster)/alpha;
             data_freq(contador,:,:) = freq_loc;
         end
+
+        tiempoTx(cluster) = tiempoTx(cluster) + N*tau_msg_sync;
+        tiempoSp(cluster) = tiempoSp(cluster) - N*tau_msg_sync;
+        
         tiempoSp = tiempoSp + N*T;
         timeDuration = T;
         updateSimulationTime(timeDuration);                     
