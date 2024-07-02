@@ -34,7 +34,7 @@ tiempo = 0;
 Nc = 1e2; % Ciclos que dura la simulación
 Tc = T * (xi + 2); % Tiempo de ciclo
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
-L = 20; % Periodo de Sync
+L = 5; % Periodo de Sync
 ta = L * Tc;
 % t_byte = Tc; % seg
 buf_rel = 1;
@@ -52,16 +52,17 @@ freq_loc = (randn(N, I) * freq_desv + 1) * freq_nom;
 max_offset = 0; % maximum offset for initial synchronization
 mu = 0;
 std = 1e-6;
+std = std/sqrt(2);
 
 % Inicialización de variables
 Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 offsets = zeros(N,I);
 rx_sink = [];
 pkts = [];
-data_offsets = [];
-time_offsets = [];
-data_clocks  = [];
-data_freq = [];
+data_offsets = zeros((L+1)*(I+1)*Nc,N,I);
+time_offsets = zeros((L+1)*(I+1)*Nc,1);
+data_clocks  = zeros((L+1)*(I+1)*Nc,N,I);
+data_freq = zeros((L+1)*(I+1)*Nc,N,I);
 buf_rel = 1;
 buf_loc = 2;
 
@@ -219,6 +220,10 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 figure(3)
 plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos de un grado'), %xlim([0 300])
 xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
+
+figure(4)
+plot(time_offsets, [max(abs(data_offsets),[],[2 3]) mean(abs(data_offsets),[2 3])])
+legend(["Máximo error"; "Error promedio"])
 
 %% Funciones 
 function updateSimulationTime(timeDuration)
