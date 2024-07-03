@@ -1,8 +1,8 @@
 close all
 clear variables
 
-global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T Tc perdidos th n_pkt retardos pkts tsim rx_sink ;
-global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets tau_msg_sync L;
+global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos th n_pkt retardos pkts tsim rx_sink ;
+global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets L;
 
 % Initialization Parameters
 I = 7; % Number of degrees
@@ -23,9 +23,6 @@ tau_sifs = 5e-3;
 
 tau_msg = tau_difs + tau_rts + tau_cts + tau_data + tau_ack + 3*tau_sifs;
 T = tau_msg + sigma*N; % Duración de una ranura en seg
-
-tau_data_sync = 40e-3;
-tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack; 
 
 % Simulation Parameters
 tsim = 0; % medido en seconds
@@ -170,13 +167,13 @@ end % end tsim
 %% Parametro de evaluacion
 % Calculo de potencia
 table(tiempoSp, tiempoRx, tiempoTx, tiempoSp+tiempoRx+tiempoTx, ...
-    'VariableNames',["S", "Rx", "Tx", "Suma"])
+    'VariableNames',["S", "Rx", "Tx", "Suma"]);
 % tsim*N
 P_rx = 59.9; % mW
 P_tx = 52.2; % mW
 P_sp = 0;    % mW
 % Potencia promedio consumida por nodo [mW]
-P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I
+P_prom = (sum(tiempoRx)*P_rx + sum(tiempoTx)*P_tx + sum(tiempoSp)*P_sp) / N/tsim/I;
 
 %% Throughput de la red (pkts/s)
 n = th;
@@ -290,8 +287,11 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
 end
 
 function syncProtocolEfic()
-    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync;     
+    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx;     
     t_byte = Tc;
+
+    tau_data_sync = 40e-3;
+    tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
     
     % Correción del primer nodo de referencia
     ref = randi(N);
@@ -351,8 +351,11 @@ function syncProtocolEfic()
 end
 
 function syncProtocolFTSP()
-    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx tau_msg_sync L Tc;  
-    t_byte = L*Tc;                          
+    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx L Tc;  
+    t_byte = L*Tc;
+
+    tau_data_sync = 11e-3;
+    tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
     
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
