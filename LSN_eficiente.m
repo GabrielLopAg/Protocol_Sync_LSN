@@ -28,7 +28,7 @@ T = tau_msg + sigma*N; % Duración de una ranura en seg
 tsim = 0; % medido en seconds
 contador = 0;
 tiempo = 0;
-Nc = 1e2; % Ciclos que dura la simulación
+Nc = 15000; % Ciclos que dura la simulación
 Tc = T * (xi + 2); % Tiempo de ciclo
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
 L = 5; % Periodo de Sync
@@ -219,7 +219,9 @@ plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos de
 xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
 
 figure(4)
-plot(time_offsets, [max(abs(data_offsets),[],[2 3]) mean(abs(data_offsets),[2 3])])
+% plot(time_offsets, [max(abs(data_offsets),[],[2 3]) mean(abs(data_offsets),[2 3])]), xlim([0 3e4])
+plot(time_offsets, max(abs(data_offsets),[],[2 3]), 'r', time_offsets, mean(abs(data_offsets),[2 3]), 'b') , xlim([0 1e3])
+xlabel('Tiempo (s)'), ylabel('Desviación (s)'), title('Error de sincronización en FTSP');
 legend(["Máximo error"; "Error promedio"])
 
 %% Funciones 
