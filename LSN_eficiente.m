@@ -28,10 +28,10 @@ T = tau_msg + sigma*N; % Duración de una ranura en seg
 tsim = 0; % medido en seconds
 contador = 0;
 tiempo = 0;
-Nc = 15000; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Tc = T * (xi + 2); % Tiempo de ciclo
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
-L = 5; % Periodo de Sync
+L = 11; % Periodo de Sync
 ta = L * Tc;
 % t_byte = Tc; % seg
 buf_rel = 1;
@@ -56,10 +56,10 @@ Grado = zeros(2,K,N,I); % Buffer, Nodo, Grado
 offsets = zeros(N,I);
 rx_sink = [];
 pkts = [];
-data_offsets = zeros((L+1)*(I+1)*Nc,N,I);
-time_offsets = zeros((L+1)*(I+1)*Nc,1);
-data_clocks  = zeros((L+1)*(I+1)*Nc,N,I);
-data_freq = zeros((L+1)*(I+1)*Nc,N,I);
+data_offsets = zeros((L+1)*(I+1)*ceil((Nc+1)/L),N,I);
+time_offsets = zeros((L+1)*(I+1)*ceil((Nc+1)/L),1);
+data_clocks  = zeros((L+1)*(I+1)*ceil((Nc+1)/L),N,I);
+data_freq = zeros((L+1)*(I+1)*ceil((Nc+1)/L),N,I);
 buf_rel = 1;
 buf_loc = 2;
 
@@ -289,11 +289,13 @@ function processTransmission(ganador, sel_buffer, i, j, mRx, mTx)
 end
 
 function syncProtocolEfic()
-    global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx;     
+    global tsim T Tc N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx;     
     t_byte = Tc;
 
-    tau_data_sync = 40e-3;
-    tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
+    % tau_data_sync = 40e-3;
+    % tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
+    % tau_msg_sync = 66e-3;
+    tau_msg_sync = 37e-3;
     
     % Correción del primer nodo de referencia
     ref = randi(N);
@@ -356,8 +358,9 @@ function syncProtocolFTSP()
     global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx L Tc;  
     t_byte = L*Tc;
 
-    tau_data_sync = 11e-3;
-    tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
+    % tau_data_sync = 11e-3;
+    % tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
+    tau_msg_sync = 37e-3;
     
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
