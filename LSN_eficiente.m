@@ -1,5 +1,5 @@
-close all
-clear variables
+% close all
+% clear variables
 
 global Grado K buf_loc buf_rel tiempoTx tiempoRx tiempoSp tau_difs tau_rts tau_msg sigma T perdidos th n_pkt retardos pkts tsim rx_sink ;
 global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets contador data_clocks data_offsets data_freq time_offsets L;
@@ -156,8 +156,11 @@ while tsim < Ttot
     updateSimulationTime(timeDuration);
 
     % Synchronization
-    % syncProtocolEfic();
-    syncProtocolFTSP();
+    if efic
+        syncProtocolEfic();
+    else
+        syncProtocolFTSP();
+    end
 
     tiempoSp = tiempoSp + N * T * (xi + 2 - 2 * I - 1);
     timeDuration = T * (xi + 2 - 2 * I - 1);
@@ -294,8 +297,7 @@ function syncProtocolEfic()
 
     % tau_data_sync = 40e-3;
     % tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
-    % tau_msg_sync = 66e-3;
-    tau_msg_sync = 37e-3;
+    tau_msg_sync = 66e-3;
     
     % Correción del primer nodo de referencia
     ref = randi(N);
@@ -356,11 +358,12 @@ end
 
 function syncProtocolFTSP()
     global tsim T N I freq_loc freq_nom clocks contador data_freq tiempoSp tiempoRx tiempoTx L Tc;  
-    t_byte = L*Tc;
+    t_byte = Tc;
 
     % tau_data_sync = 11e-3;
     % tau_msg_sync = tau_difs + tau_data_sync + tau_sifs + tau_ack;
-    tau_msg_sync = 37e-3;
+    % tau_msg_sync = 37e-3;
+    tau_msg_sync = 66e-3;
     
     X = -(0:7)'*t_byte + tsim; % Tx 4.8KBps
 
