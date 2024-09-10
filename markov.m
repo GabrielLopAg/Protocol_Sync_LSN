@@ -1,4 +1,4 @@
-% N = 40;
+% N = 35;
 % K = 7;
 % I = 7;
 % xi = 18;
@@ -15,7 +15,7 @@
 % Tc = T*(xi+2); % Tiempo de ciclo
 a = lambda * Tc;
 
-% p_rel = 0.9;
+% p_rel = 0.8;
 p_loc = 1 - p_rel;
 
 mc = zeros((K+1)^2);
@@ -141,22 +141,22 @@ for i=I:-1:1
     % (n, v)
     % (m, u)
     
-    m = 0;
-    n = 0;
-    u = 0;
-    v = 0;
-    mc(m*(K+1)+u+1, n*(K+1)+v+1) = (1-p_r)*(1-a); % 8
+    % m = 0;
+    % n = 0;
+    % u = 0;
+    % v = 0;
+    mc(0*(K+1)+0+1, 0*(K+1)+0+1) = (1-p_r)*(1-a); % 8
     
-    n = 1;
-    v = 1;
-    mc(m*(K+1)+u+1, n*(K+1)+v+1) = p_r*a; % 9
+    % n = 1;
+    % v = 1;
+    mc(0*(K+1)+0+1, 1*(K+1)+1+1) = p_r*a; % 9
     
-    v = 0;
-    mc(m*(K+1)+u+1, n*(K+1)+v+1) = p_r*(1-a); % 10
+    % v = 0;
+    mc(0*(K+1)+0+1, 1*(K+1)+0+1) = p_r*(1-a); % 10
     
-    n = 0;
-    v = 1;
-    mc(m*(K+1)+u+1, n*(K+1)+v+1) = (1-p_r)*a; % 11
+    % n = 0;
+    % v = 1;
+    mc(0*(K+1)+0+1, 0*(K+1)+1+1) = (1-p_r)*a; % 11
     
     for m = 1:K-1
         mc(m*(K+1)+0+1, m*(K+1)+0+1)     = p_r*(1-a)*p_t + (1-p_r)*(1-a)*(1-p_t); % 12
@@ -277,8 +277,8 @@ end
 %% Retardo
 D = zeros(I,1);
 k = 0:K;
-Dl = Tc/a./(1-pi_loc(K,:)').*sum(k.*pi_loc',2) - Tc/2 + (xi+1)*T;
-Dr = Tc./pr./(1-pi_rel(K,:)').*sum(k.*pi_rel',2) - Tc + (xi+1)*T;
+Dl = Tc/a./(1-pi_loc(K+1,:)').*sum(k.*pi_loc',2) - Tc/2 + (xi+1)*T;
+Dr = Tc./pr./(1-pi_rel(K+1,:)').*sum(k.*pi_rel',2) - Tc + (xi+1)*T;
 
 for i=1:I
     D(i) = Dl(i) + sum(Dr(1:i-1));

@@ -6,7 +6,7 @@ global N I Ttot Tc Nc tiempo xi std freq_loc freq_nom clocks max_offset offsets 
 
 % Initialization Parameters
 I = 7; % Number of degrees
-N = 35; % Number of nodes per degree (5, 10, 15, 20)
+% N = 35; % Number of nodes per degree (5, 10, 15, 20)
 p = nextprime(N);
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
@@ -28,15 +28,15 @@ T = tau_msg + sigma*N; % Duración de una ranura en seg
 tsim = 0; % medido en seconds
 contador = 0;
 tiempo = 0;
-Nc = 1e4; % Ciclos que dura la simulación
+% Nc = 1e4; % Ciclos que dura la simulación
 Tc = T * (xi + 2); % Tiempo de ciclo
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
-L = 11; % Periodo de Sync
+% L = 11; % Periodo de Sync
 ta = L * Tc;
 % t_byte = Tc; % seg
 buf_rel = 1;
 buf_loc = 2;
-p_rel = 0.8;
+% p_rel = 0.8;
 p_loc = 1 - p_rel;
 id = 0;
 lambda2 = lambda * N * I;
@@ -48,7 +48,7 @@ clocks = zeros(N, I);
 freq_loc = (randn(N, I) * freq_desv + 1) * freq_nom;
 max_offset = 0; % maximum offset for initial synchronization
 mu = 0;
-std = 1e-6;
+% std = 1e-6;
 std = std/sqrt(2);
 
 % Inicialización de variables
@@ -78,10 +78,10 @@ tiempoRx = zeros(I,1);
 tiempoSp = zeros(I,1);
 
 while tsim < Ttot
-    tiempo = N*sigma + tau_difs + tau_rts;
-    tiempoSp(I) = tiempoSp(I) - N*tiempo;
-    tiempoRx(I) = tiempoRx(I) + N*tiempo;
     for sync = 1:L
+        tiempo = N*sigma + tau_difs + tau_rts;
+        tiempoSp(I) = tiempoSp(I) - N*tiempo;
+        tiempoRx(I) = tiempoRx(I) + N*tiempo;
         for i = I:-1:1            
             while ta <= tsim % Generación de pkts locales
                 id = id + 1;
@@ -115,7 +115,7 @@ while tsim < Ttot
                 % No hay paquetes para transmitir en ese grado
                 timeDuration = T;
                 updateSimulationTime(timeDuration);
-                tiempo = tau_difs + sigma*N + tau_rts + tau_sifs;
+                tiempo = tau_difs + sigma*N + tau_rts;
                 tiempoSp = tiempoSp + N*T;
                 if i>1
                     tiempoSp(i-1) = tiempoSp(i-1) - mRx*tiempo;
@@ -188,14 +188,14 @@ th = sum(th)/tsim; % pkts/seg
 %     retardo(i) = mean( rx_sink(rx_sink(:,2)==i,3) ) / Tc;
 % end
 retardos = retardos./n;
-figure(1);
-bar(retardos);
-title('Retardo promedio del paquete');
-xlabel('Grado de origen');
-ylabel('Retardo [s]');
-annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N], ...
-   'FitBoxToText', 'on');
+% figure(1);
+% bar(retardos);
+% title('Retardo promedio del paquete');
+% xlabel('Grado de origen');
+% ylabel('Retardo [s]');
+% annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
+%    ["\lambda = "+lambda; "N = "+N], ...
+%    'FitBoxToText', 'on');
 
 % Paquetes perdidos
 % perd = zeros(1,I);
@@ -204,28 +204,28 @@ annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
 %     perd(i) = (p - numel( rx_sink(rx_sink(:,2)==i,1) )) / p;
 % end
 perdidos = perdidos./n_pkt;
-figure(2);
-bar(perdidos)
-title('Probabilidad de paquete perdido');
-xlabel('Grado de origen');
-annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
-   ["\lambda = "+lambda; "N = "+N], ...
-   'FitBoxToText', 'on');
+% figure(2);
+% bar(perdidos)
+% title('Probabilidad de paquete perdido');
+% xlabel('Grado de origen');
+% annotation('textbox',[0.15 0.6 0.3 0.3], 'String', ...
+%    ["\lambda = "+lambda; "N = "+N], ...
+%    'FitBoxToText', 'on');
 
 % histogram(pkts(ismember(pkts(:,1),rx_sink),2));
 % figure(2)
 % histogram(pkts(:,2));
 
 %% Graficas de offset
-figure(3)
-plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos de un grado'), %xlim([0 300])
-xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
-
-figure(4)
-% plot(time_offsets, [max(abs(data_offsets),[],[2 3]) mean(abs(data_offsets),[2 3])]), xlim([0 3e4])
-plot(time_offsets, max(abs(data_offsets),[],[2 3]), 'r', time_offsets, mean(abs(data_offsets),[2 3]), 'b') , xlim([0 1e3])
-xlabel('Tiempo (s)'), ylabel('Desviación (s)'), title('Error de sincronización en FTSP');
-legend(["Máximo error"; "Error promedio"])
+% figure(3)
+% plot(time_offsets, data_offsets(:,:,1)), grid on, title('Offsets de los nodos de un grado'), %xlim([0 300])
+% xlabel('Tiempo (s)'), ylabel('Magnitud del offset (s)')
+% 
+% figure(4)
+% % plot(time_offsets, [max(abs(data_offsets),[],[2 3]) mean(abs(data_offsets),[2 3])]), xlim([0 3e4])
+% plot(time_offsets, max(abs(data_offsets),[],[2 3]), 'r', time_offsets, mean(abs(data_offsets),[2 3]), 'b') , xlim([0 1e3])
+% xlabel('Tiempo (s)'), ylabel('Desviación (s)'), title('Error de sincronización en FTSP');
+% legend(["Máximo error"; "Error promedio"])
 
 %% Funciones 
 function updateSimulationTime(timeDuration)

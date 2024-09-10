@@ -6,7 +6,7 @@ global N I Ttot Tc Nc tiempo t_byte xi std freq_loc freq_nom clocks max_offset o
 
 % Initialization Parameters
 I = 7; % Number of degrees
-N = 35; % Number of nodes per degree (5, 10, 15, 20)
+% N = 35; % Number of nodes per degree (5, 10, 15, 20)
 p = nextprime(N);
 K = 7; % Number of buffer spaces per node
 xi = 18; % Number of sleeping slots
@@ -32,14 +32,14 @@ tsim = 0; % measured in seconds
 contador = 0;
 tiempo = 0;
 Tc = T * (xi + 2); % Tiempo de ciclo
-Nc = 1e3; % Ciclos que dura la simulación
+Nc = 1e4; % Ciclos que dura la simulación
 Ttot = Tc * Nc; % (ranuras) Tiempo total de la simulación
 L = 11; % Periodo de Sync
 ta = L * Tc;
 t_byte = L*Tc; % seg
 buf_rel = 1;
 buf_loc = 2;
-p_rel = 0.8;
+% p_rel = 0.8;
 p_loc = 1 - p_rel;
 id = 0;
 lambda2 = lambda * N * I;
